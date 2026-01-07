@@ -1,8 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .config import settings
+from .db.neo4j import db_lifespan
 
-app = FastAPI()
+app = FastAPI(lifespan=db_lifespan)
 
 origins = [
     settings.origin_url,
@@ -23,4 +24,7 @@ async def root():
 
 @app.get("/health")
 async def health_check():
+    """
+    Health Check endpoiont for monitoring service availability.
+    """
     return { "status": "ok" }
