@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools >= 65.5.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "white_rabbit"
+version= "0.0.1"
+dependencies = [
+    "fastapi[standard]",
+    "uvicorn",
+    "neo4j",
+    "python-dotenv",
+    "pydantic",
+]
+authors= [
+    { name = "Gihun Ko Stephen", email = "rhrlgns96@gmail.com" }
+]
