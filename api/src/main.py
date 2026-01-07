@@ -1,9 +1,14 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .config import settings
-from .db.neo4j import db_lifespan
+from .db.neo4j import db_lifespan, check_db_health
 
-app = FastAPI(lifespan=db_lifespan)
+app = FastAPI(
+    title="White Rabbit API",
+    description="FastAPI backend for White Rabbit mystery exploration project",
+    version="0.0.1",
+    lifespan=db_lifespan
+)
 
 origins = [
     settings.origin_url,
@@ -25,6 +30,12 @@ async def root():
 @app.get("/health")
 async def health_check():
     """
-    Health Check endpoiont for monitoring service availability.
+    Health check endpoint for monitoring service and database availability.
+    Verifies both API server and Neo4j database connectivity.
     """
-    return { "status": "ok" }
+    db_health = await check_db_health()
+
+    return {
+        "api": "ok",
+        "database": db_health
+    }
