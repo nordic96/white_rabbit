@@ -17,6 +17,8 @@ I target to complete development of this project and continuously polish the CSS
 
 1. A Knowledge database with 10 mysteries pre-inserted manually to Neo4J's database with Schema defined (for detailed schema, refer to Section 2. Database Schema (MVP))
 
+1. Fast API Setup under `api/` that caters with Neo4J's CRUD operations
+
 1. A working NextJS Web application that connects with the database remotely, and visualises each nodes
 
 1. User can read, view thumbnail of related images, and navigate to related youtube videos for deeper learning of the event
