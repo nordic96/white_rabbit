@@ -1,36 +1,31 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# White Rabbit
+> *"You take the blue pill - the story ends, you wake up in your bed and believe whatever you want to believe. You take the red pill - you stay in Wonderland and I show you how deep the rabbit hole goes"* - Morpheus [Matrix]
 
-## Getting Started
+## 0. Project Overview
 
-First, run the development server:
+A Web Application with Neo4J's Knowledge Database on World's unsolved mystyeries.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+> DISCLAIMER: Mysteries are Mysteries for a reason, it is not a fact and 
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+This is a personal project for me to learn Neo4J and graph database's features. As my skills are focused on frontend and web development, I want to turn this project into a learning opportunity to familiarise with the latest graph database technologies
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 1. Project Development Plan
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+I target to complete development of this project and continuously polish the CSS's and beauty features of this web application after completing major features.
 
-## Learn More
+### 1.1 Phase 1 (MVP)
 
-To learn more about Next.js, take a look at the following resources:
+1. A Knowledge database with 10 mysteries pre-inserted manually to Neo4J's database with Schema defined (for detailed schema, refer to Section 2. Database Schema (MVP))
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. A working NextJS Web application that connects with the database remotely, and visualises each nodes
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. User can read, view thumbnail of related images, and navigate to related youtube videos for deeper learning of the event
 
-## Deploy on Vercel
+## 2. Database Schema (MVP)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Mystery Node
+### Person
+### Location
+### Time Period
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 3. Tech Stacks Used
