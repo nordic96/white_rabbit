@@ -1,4 +1,8 @@
-server/.venv/
+# FastAPI Backend API related
+/api/.venv
+dist/
+build/
+*.egg-info
 
 */**/__pycache__
 .DS_Store
