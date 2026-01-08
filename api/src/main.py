@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from .config import settings
 from .db.neo4j import db_lifespan, check_db_health
@@ -28,12 +28,12 @@ async def root():
     return { "message": "hello world" }
 
 @app.get("/health")
-async def health_check():
+async def health_check(request: Request):
     """
     Health check endpoint for monitoring service and database availability.
     Verifies both API server and Neo4j database connectivity.
     """
-    db_health = await check_db_health()
+    db_health = await check_db_health(request)
 
     return {
         "api": "ok",
