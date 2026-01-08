@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from .config import settings
 from .db.neo4j import db_lifespan, check_db_health
+from .routers import mysteries, graph, nodes
 
 app = FastAPI(
     title="White Rabbit API",
@@ -22,6 +23,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include routers
+app.include_router(mysteries.router)
+app.include_router(graph.router)
+app.include_router(nodes.router)
 
 @app.get("/")
 async def root():
