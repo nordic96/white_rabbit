@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     neo4j_database: str = "neo4j"
 
     model_config = SettingsConfigDict(
-        env_file=".env.local",
+        env_file=[".env.local", ".env"],
         env_file_encoding="utf-8"
     )
 

@@ -1,0 +1,171 @@
+"""
+Mystery service layer for database operations.
+"""
+from fastapi import Request, HTTPException
+from typing import List, Optional, Dict, Any
+from ..db.neo4j import execute_read_query
+from ..schemas.mystery import MysteryListItem, MysteryDetail, LocationNode, TimePeriodNode, CategoryNode
+from ..schemas.common import MysteryStatus
+
+
+async def get_mysteries(
+    request: Request,
+    limit: int = 20,
+    offset: int = 0,
+    status: Optional[MysteryStatus] = None
+) -> tuple[List[MysteryListItem], int]:
+    """
+    Retrieve paginated list of mysteries with optional status filter.
+
+    Args:
+        request: FastAPI request object for database access
+        limit: Number of items to return (max 100)
+        offset: Number of items to skip
+        status: Optional status filter
+
+    Returns:
+        Tuple of (list of mysteries, total count)
+    """
+    # Build query with optional status filter
+    where_clause = "WHERE m.status = $status" if status else ""
+
+    # Query for mysteries with pagination
+    query = f"""
+    MATCH (m:Mystery)
+    {where_clause}
+    RETURN m.id as id,
+           m.title as title,
+           m.status as status,
+           m.confidence_score as confidence_score,
+           m.first_reported_year as first_reported_year,
+           m.last_reported_year as last_reported_year,
+           m.created_at as created_at,
+           m.updated_at as updated_at
+    ORDER BY m.first_reported_year DESC
+    SKIP $offset
+    LIMIT $limit
+    """
+
+    # Count query for total
+    count_query = f"""
+    MATCH (m:Mystery)
+    {where_clause}
+    RETURN count(m) as total
+    """
+
+    parameters = {
+        "limit": limit,
+        "offset": offset
+    }
+
+    if status:
+        parameters["status"] = status.value
+
+    # Execute queries
+    mysteries_data = await execute_read_query(request, query, parameters)
+    count_data = await execute_read_query(request, count_query, parameters if status else {})
+
+    total = count_data[0]["total"] if count_data else 0
+
+    # Convert to Pydantic models
+    mysteries = [
+        MysteryListItem(
+            id=item["id"],
+            title=item["title"],
+            status=MysteryStatus(item["status"]),
+            confidence_score=item.get("confidence_score"),
+            first_reported_year=item.get("first_reported_year"),
+            last_reported_year=item.get("last_reported_year"),
+            created_at=item.get("created_at"),
+            updated_at=item.get("updated_at")
+        )
+        for item in mysteries_data
+    ]
+
+    return mysteries, total
+
+
+async def get_mystery_by_id(request: Request, mystery_id: str) -> MysteryDetail:
+    """
+    Retrieve a single mystery with all related nodes.
+
+    Args:
+        request: FastAPI request object for database access
+        mystery_id: Unique identifier for the mystery
+
+    Returns:
+        Detailed mystery with related nodes
+
+    Raises:
+        HTTPException: If mystery not found
+    """
+    query = """
+    MATCH (m:Mystery {id: $mystery_id})
+    OPTIONAL MATCH (m)-[:LOCATED_AT]->(l:Location)
+    OPTIONAL MATCH (m)-[:OCCURRED_IN]->(t:TimePeriod)
+    OPTIONAL MATCH (m)-[:HAS_CATEGORY]->(c:Category)
+    RETURN m,
+           collect(DISTINCT l) as locations,
+           collect(DISTINCT t) as time_periods,
+           collect(DISTINCT c) as categories
+    """
+
+    parameters = {"mystery_id": mystery_id}
+
+    result = await execute_read_query(request, query, parameters)
+
+    if not result or not result[0].get("m"):
+        raise HTTPException(status_code=404, detail=f"Mystery with id '{mystery_id}' not found")
+
+    data = result[0]
+    mystery_node = data["m"]
+
+    # Parse locations
+    locations = [
+        LocationNode(
+            id=loc["id"],
+            name=loc["name"],
+            latitude=loc.get("latitude"),
+            longitude=loc.get("longitude"),
+            country=loc.get("country")
+        )
+        for loc in data["locations"]
+        if loc is not None
+    ]
+
+    # Parse time periods
+    time_periods = [
+        TimePeriodNode(
+            id=tp["id"],
+            label=tp["label"],
+            start_year=tp.get("start_year"),
+            end_year=tp.get("end_year")
+        )
+        for tp in data["time_periods"]
+        if tp is not None
+    ]
+
+    # Parse categories
+    categories = [
+        CategoryNode(
+            id=cat["id"],
+            name=cat["name"],
+            description=cat.get("description")
+        )
+        for cat in data["categories"]
+        if cat is not None
+    ]
+
+    return MysteryDetail(
+        id=mystery_node["id"],
+        title=mystery_node["title"],
+        status=MysteryStatus(mystery_node["status"]),
+        confidence_score=mystery_node.get("confidence_score"),
+        first_reported_year=mystery_node.get("first_reported_year"),
+        last_reported_year=mystery_node.get("last_reported_year"),
+        created_at=mystery_node.get("created_at"),
+        updated_at=mystery_node.get("updated_at"),
+        locations=locations,
+        time_periods=time_periods,
+        categories=categories
+    )
