@@ -45,7 +45,7 @@ async def get_nodes_by_type(request: Request, node_type: NodeType) -> NodeListRe
     RETURN n.id as id,
            labels(n)[0] as type,
            properties(n) as properties
-    ORDER BY n.created_at DESC, n.name ASC
+    ORDER BY n.name ASC
     """
 
     # Count query

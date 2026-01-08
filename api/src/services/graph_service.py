@@ -71,7 +71,7 @@ async def get_graph_data(request: Request, depth: int = 1, node_limit: int = 500
     UNWIND allRels as r
     RETURN nodes,
            collect({{
-               id: toString(id(r)),
+               id: toString(elementId(r)),
                source: startNode(r).id,
                target: endNode(r).id,
                type: type(r),

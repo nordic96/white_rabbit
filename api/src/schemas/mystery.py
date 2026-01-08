@@ -19,8 +19,6 @@ class MysteryListItem(MysteryBase):
     confidence_score: Optional[float] = Field(None, description="Confidence score for the mystery")
     first_reported_year: Optional[int] = Field(None, description="First reported year")
     last_reported_year: Optional[int] = Field(None, description="Last reported year")
-    created_at: Optional[datetime] = Field(None, description="Creation timestamp")
-    updated_at: Optional[datetime] = Field(None, description="Last update timestamp")
 
 
 class LocationNode(BaseModel):
@@ -44,7 +42,6 @@ class CategoryNode(BaseModel):
     """Category node associated with a mystery."""
     id: str = Field(description="Unique identifier for the category")
     name: str = Field(description="Name of the category")
-    description: Optional[str] = Field(None, description="Category description")
 
 
 class MysteryDetail(MysteryBase):
@@ -53,8 +50,6 @@ class MysteryDetail(MysteryBase):
     confidence_score: Optional[float] = Field(None, description="Confidence score for the mystery")
     first_reported_year: Optional[int] = Field(None, description="First reported year")
     last_reported_year: Optional[int] = Field(None, description="Last reported year")
-    created_at: Optional[datetime] = Field(None, description="Creation timestamp")
-    updated_at: Optional[datetime] = Field(None, description="Last update timestamp")
     locations: List[LocationNode] = Field(default_factory=list, description="Associated locations")
     time_periods: List[TimePeriodNode] = Field(default_factory=list, description="Associated time periods")
     categories: List[CategoryNode] = Field(default_factory=list, description="Associated categories")
