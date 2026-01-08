@@ -1,11 +1,12 @@
 """
 Node service layer for type-based queries.
 """
-from fastapi import Request, HTTPException
+from fastapi import Request
 from typing import List
 from ..db.neo4j import execute_read_query
 from ..schemas.node import GenericNode, NodeListResponse
 from ..schemas.common import NodeType
+from ..exceptions import InvalidNodeTypeError
 
 
 # Whitelist of valid node types for security
@@ -33,9 +34,9 @@ async def get_nodes_by_type(request: Request, node_type: NodeType) -> NodeListRe
     """
     # Validate node type (defense in depth, even though Enum already validates)
     if node_type.value not in VALID_NODE_TYPES:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid node type. Must be one of: {', '.join(VALID_NODE_TYPES)}"
+        raise InvalidNodeTypeError(
+            node_type=node_type.value,
+            valid_types=list(VALID_NODE_TYPES)
         )
 
     # Use parameterized query with node type

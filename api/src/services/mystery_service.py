@@ -1,11 +1,12 @@
 """
 Mystery service layer for database operations.
 """
-from fastapi import Request, HTTPException
+from fastapi import Request
 from typing import List, Optional, Dict, Any
 from ..db.neo4j import execute_read_query
 from ..schemas.mystery import MysteryListItem, MysteryDetail, LocationNode, TimePeriodNode, CategoryNode
 from ..schemas.common import MysteryStatus
+from ..exceptions import ResourceNotFoundError, DatabaseQueryError
 import logging
 
 logger = logging.getLogger(__name__)
@@ -114,7 +115,7 @@ async def get_mystery_by_id(request: Request, mystery_id: str) -> MysteryDetail:
     result = await execute_read_query(request, query, parameters)
 
     if not result or not result[0].get("m"):
-        raise HTTPException(status_code=404, detail=f"Mystery with id '{mystery_id}' not found")
+        raise ResourceNotFoundError(resource_type="Mystery", resource_id=mystery_id)
 
     data = result[0]
     mystery_node = data["m"]
