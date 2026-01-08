@@ -7,25 +7,33 @@ from ..db.neo4j import execute_read_query
 from ..schemas.graph import GraphNode, GraphRelationship, GraphResponse
 
 
-async def get_graph_data(request: Request, depth: int = 1) -> GraphResponse:
+async def get_graph_data(request: Request, depth: int = 1, node_limit: int = 500) -> GraphResponse:
     """
     Retrieve graph data for NVL visualization.
 
     Args:
         request: FastAPI request object for database access
         depth: Traversal depth (1-3, default: 1)
+        node_limit: Maximum number of nodes to return (default: 500, max: 1000)
 
     Returns:
         Graph response with nodes and relationships
 
     Raises:
-        HTTPException: If depth is out of range
+        HTTPException: If depth is out of range or node_limit exceeds maximum
     """
     # Validate depth parameter
     if depth < 1 or depth > 3:
         raise HTTPException(
             status_code=400,
             detail="Depth must be between 1 and 3"
+        )
+
+    # Validate node_limit parameter
+    if node_limit < 1 or node_limit > 1000:
+        raise HTTPException(
+            status_code=400,
+            detail="Node limit must be between 1 and 1000"
         )
 
     # Query to get nodes and relationships up to specified depth
@@ -47,6 +55,7 @@ async def get_graph_data(request: Request, depth: int = 1) -> GraphResponse:
     UNWIND nodeLists as nodeList
     UNWIND nodeList as node
     WITH collect(DISTINCT node) as allNodes, relLists
+    LIMIT $node_limit
     UNWIND relLists as relList
     UNWIND relList as rel
     WITH allNodes, collect(DISTINCT rel) as allRels
@@ -70,7 +79,7 @@ async def get_graph_data(request: Request, depth: int = 1) -> GraphResponse:
            }}) as relationships
     """
 
-    parameters = {}
+    parameters = {"node_limit": node_limit}
 
     result = await execute_read_query(request, query, parameters)
 

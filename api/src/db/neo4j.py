@@ -121,10 +121,10 @@ async def execute_read_query(
             records = await result.data()
             return records
     except Exception as e:
-        logger.error(f"Read query failed: {type(e).__name__}")
+        logger.error("Database query failed", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"Database query failed: {type(e).__name__}"
+            detail="Database operation failed"
         )
 
 async def execute_write_query(
@@ -155,10 +155,10 @@ async def execute_write_query(
             await result.consume()  # Ensure transaction is consumed
             return records
     except Exception as e:
-        logger.error(f"Write query failed: {type(e).__name__}")
+        logger.error("Database write query failed", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"Database write operation failed: {type(e).__name__}"
+            detail="Database operation failed"
         )
 
 async def execute_transaction(
@@ -188,10 +188,10 @@ async def execute_transaction(
                 # Commit is automatic when exiting the context manager
         return True
     except Exception as e:
-        logger.error(f"Transaction failed: {type(e).__name__}")
+        logger.error("Database transaction failed", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"Database transaction failed: {type(e).__name__}"
+            detail="Database operation failed"
         )
 
 db_lifespan = lifespan

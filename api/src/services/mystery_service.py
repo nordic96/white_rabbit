@@ -101,9 +101,9 @@ async def get_mystery_by_id(request: Request, mystery_id: str) -> MysteryDetail:
     """
     query = """
     MATCH (m:Mystery {id: $mystery_id})
-    OPTIONAL MATCH (m)-[:LOCATED_IN]->(l:Location)
+    OPTIONAL MATCH (m)-[:LOCATED_AT]->(l:Location)
     OPTIONAL MATCH (m)-[:OCCURRED_IN]->(t:TimePeriod)
-    OPTIONAL MATCH (m)-[:BELONGS_TO]->(c:Category)
+    OPTIONAL MATCH (m)-[:HAS_CATEGORY]->(c:Category)
     RETURN m,
            collect(DISTINCT l) as locations,
            collect(DISTINCT t) as time_periods,

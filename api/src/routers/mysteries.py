@@ -1,7 +1,7 @@
 """
 Mystery endpoints for CRUD operations.
 """
-from fastapi import APIRouter, Request, Query
+from fastapi import APIRouter, Request, Query, Path
 from typing import Optional
 from ..schemas.mystery import MysteryListResponse, MysteryDetail
 from ..schemas.common import MysteryStatus
@@ -47,13 +47,19 @@ async def list_mysteries(
 @router.get("/{mystery_id}", response_model=MysteryDetail)
 async def get_mystery(
     request: Request,
-    mystery_id: str
+    mystery_id: str = Path(
+        ...,
+        min_length=1,
+        max_length=100,
+        pattern="^[a-zA-Z0-9-_]+$",
+        description="Unique identifier for the mystery (alphanumeric, hyphens, and underscores only)"
+    )
 ):
     """
     Retrieve detailed information about a specific mystery.
 
     **Path Parameters:**
-    - `mystery_id`: Unique identifier for the mystery
+    - `mystery_id`: Unique identifier for the mystery (alphanumeric, hyphens, and underscores only)
 
     **Returns:**
     - Detailed mystery information including:
@@ -64,5 +70,6 @@ async def get_mystery(
 
     **Errors:**
     - `404`: Mystery not found
+    - `422`: Invalid mystery_id format
     """
     return await get_mystery_by_id(request, mystery_id)
