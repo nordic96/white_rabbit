@@ -103,3 +103,50 @@ Expected response:
   }
 }
 ```
+
+## Database Schema
+## Models
+### 1. Mystery
+```text
+id(uuid)
+title
+status //unresolved | partially_resolved | debunked
+first_reported_year
+last_reported_year
+confidence_score
+```
+### 2. Location
+```text
+id(uuid)
+name
+type //city | region | country | ocean | mountain | site
+laitude
+longitude
+```
+### 3. TimePeriod
+```text
+id(uuid)
+label
+start_year
+end_year
+```
+### 4. Person (v2 Scope)
+### 5. Evidence (v2 Scope)
+### 6. Category
+```text
+id
+name
+```
+
+## Relationship Types
+### Mystery Relationship
+```text
+(:Mystery)-[:LOCATED_AT]->(:Location)
+(:Mystery)-[:OCCURRED_IN]->(:TimePeriod)
+(:Mystery)-[:HAS_CATEGORY]->(:Category)
+```
+
+### Cross Mystery Links
+```text
+(:Mystery)-[:SIMILAR_TO {reason}]->(:Mystery)
+```
