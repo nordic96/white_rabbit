@@ -1,8 +1,9 @@
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, Request
 from neo4j import AsyncGraphDatabase, AsyncDriver, Record
 from contextlib import asynccontextmanager
 from typing import Any, List, Dict, Optional
 from ..config import settings
+from ..exceptions import DatabaseConnectionError, DatabaseQueryError
 import logging
 
 logger = logging.getLogger(__name__)
@@ -42,12 +43,12 @@ def get_driver(request: Request) -> AsyncDriver:
         AsyncDriver: The Neo4j async driver instance
 
     Raises:
-        HTTPException: If driver is not initialized
+        DatabaseConnectionError: If driver is not initialized
     """
     if not hasattr(request.app.state, 'db_driver'):
-        raise HTTPException(
-            status_code=503,
-            detail="Database connection not established"
+        raise DatabaseConnectionError(
+            message="Database connection not established",
+            details={"reason": "Driver not initialized"}
         )
     return request.app.state.db_driver
 
@@ -111,7 +112,7 @@ async def execute_read_query(
         List of dictionaries from the query result
 
     Raises:
-        HTTPException: If query execution fails
+        DatabaseQueryError: If query execution fails
     """
     driver = get_driver(request)
 
@@ -122,9 +123,9 @@ async def execute_read_query(
             return records
     except Exception as e:
         logger.error("Database query failed", exc_info=True)
-        raise HTTPException(
-            status_code=500,
-            detail="Database operation failed"
+        raise DatabaseQueryError(
+            message="Database read operation failed",
+            details={"error_type": type(e).__name__, "query": query[:100]}
         )
 
 async def execute_write_query(
@@ -144,7 +145,7 @@ async def execute_write_query(
         List of dictionaries from the query result
 
     Raises:
-        HTTPException: If query execution fails
+        DatabaseQueryError: If query execution fails
     """
     driver = get_driver(request)
 
@@ -156,9 +157,9 @@ async def execute_write_query(
             return records
     except Exception as e:
         logger.error("Database write query failed", exc_info=True)
-        raise HTTPException(
-            status_code=500,
-            detail="Database operation failed"
+        raise DatabaseQueryError(
+            message="Database write operation failed",
+            details={"error_type": type(e).__name__, "query": query[:100]}
         )
 
 async def execute_transaction(
@@ -176,7 +177,7 @@ async def execute_transaction(
         True if transaction succeeds
 
     Raises:
-        HTTPException: If transaction fails
+        DatabaseQueryError: If transaction fails
     """
     driver = get_driver(request)
 
@@ -189,9 +190,9 @@ async def execute_transaction(
         return True
     except Exception as e:
         logger.error("Database transaction failed", exc_info=True)
-        raise HTTPException(
-            status_code=500,
-            detail="Database operation failed"
+        raise DatabaseQueryError(
+            message="Database transaction failed",
+            details={"error_type": type(e).__name__, "query_count": len(queries)}
         )
 
 db_lifespan = lifespan

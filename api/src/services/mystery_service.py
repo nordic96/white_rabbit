@@ -1,12 +1,15 @@
 """
 Mystery service layer for database operations.
 """
-from fastapi import Request, HTTPException
+from fastapi import Request
 from typing import List, Optional, Dict, Any
 from ..db.neo4j import execute_read_query
 from ..schemas.mystery import MysteryListItem, MysteryDetail, LocationNode, TimePeriodNode, CategoryNode
 from ..schemas.common import MysteryStatus
+from ..exceptions import ResourceNotFoundError, DatabaseQueryError
+import logging
 
+logger = logging.getLogger(__name__)
 
 async def get_mysteries(
     request: Request,
@@ -38,9 +41,7 @@ async def get_mysteries(
            m.status as status,
            m.confidence_score as confidence_score,
            m.first_reported_year as first_reported_year,
-           m.last_reported_year as last_reported_year,
-           m.created_at as created_at,
-           m.updated_at as updated_at
+           m.last_reported_year as last_reported_year
     ORDER BY m.first_reported_year DESC
     SKIP $offset
     LIMIT $limit
@@ -66,6 +67,7 @@ async def get_mysteries(
     count_data = await execute_read_query(request, count_query, parameters if status else {})
 
     total = count_data[0]["total"] if count_data else 0
+    logger.info(f"Total {total} Mystery Data Found")
 
     # Convert to Pydantic models
     mysteries = [
@@ -76,8 +78,6 @@ async def get_mysteries(
             confidence_score=item.get("confidence_score"),
             first_reported_year=item.get("first_reported_year"),
             last_reported_year=item.get("last_reported_year"),
-            created_at=item.get("created_at"),
-            updated_at=item.get("updated_at")
         )
         for item in mysteries_data
     ]
@@ -115,7 +115,7 @@ async def get_mystery_by_id(request: Request, mystery_id: str) -> MysteryDetail:
     result = await execute_read_query(request, query, parameters)
 
     if not result or not result[0].get("m"):
-        raise HTTPException(status_code=404, detail=f"Mystery with id '{mystery_id}' not found")
+        raise ResourceNotFoundError(resource_type="Mystery", resource_id=mystery_id)
 
     data = result[0]
     mystery_node = data["m"]
@@ -150,7 +150,6 @@ async def get_mystery_by_id(request: Request, mystery_id: str) -> MysteryDetail:
         CategoryNode(
             id=cat["id"],
             name=cat["name"],
-            description=cat.get("description")
         )
         for cat in data["categories"]
         if cat is not None
@@ -163,8 +162,6 @@ async def get_mystery_by_id(request: Request, mystery_id: str) -> MysteryDetail:
         confidence_score=mystery_node.get("confidence_score"),
         first_reported_year=mystery_node.get("first_reported_year"),
         last_reported_year=mystery_node.get("last_reported_year"),
-        created_at=mystery_node.get("created_at"),
-        updated_at=mystery_node.get("updated_at"),
         locations=locations,
         time_periods=time_periods,
         categories=categories

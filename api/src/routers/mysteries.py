@@ -1,10 +1,11 @@
 """
 Mystery endpoints for CRUD operations.
 """
-from fastapi import APIRouter, Request, Query, Path
+from fastapi import APIRouter, Request, Query, Path, status
 from typing import Optional
 from ..schemas.mystery import MysteryListResponse, MysteryDetail
 from ..schemas.common import MysteryStatus
+from ..schemas.error import ErrorResponse, ValidationErrorResponse
 from ..services.mystery_service import get_mysteries, get_mystery_by_id
 
 
@@ -14,7 +15,16 @@ router = APIRouter(
 )
 
 
-@router.get("", response_model=MysteryListResponse)
+@router.get(
+    "",
+    response_model=MysteryListResponse,
+    responses={
+        200: {"description": "Successful response with paginated list of mysteries"},
+        422: {"model": ValidationErrorResponse, "description": "Validation error"},
+        500: {"model": ErrorResponse, "description": "Internal server error"},
+        503: {"model": ErrorResponse, "description": "Database connection error"}
+    }
+)
 async def list_mysteries(
     request: Request,
     limit: int = Query(default=20, ge=1, le=100, description="Number of items to return (max 100)"),
@@ -44,7 +54,17 @@ async def list_mysteries(
     )
 
 
-@router.get("/{mystery_id}", response_model=MysteryDetail)
+@router.get(
+    "/{mystery_id}",
+    response_model=MysteryDetail,
+    responses={
+        200: {"description": "Successful response with mystery details"},
+        404: {"model": ErrorResponse, "description": "Mystery not found"},
+        422: {"model": ValidationErrorResponse, "description": "Invalid mystery_id format"},
+        500: {"model": ErrorResponse, "description": "Internal server error"},
+        503: {"model": ErrorResponse, "description": "Database connection error"}
+    }
+)
 async def get_mystery(
     request: Request,
     mystery_id: str = Path(

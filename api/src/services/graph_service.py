@@ -1,10 +1,11 @@
 """
 Graph service layer for visualization data.
 """
-from fastapi import Request, HTTPException
+from fastapi import Request
 from typing import List, Dict, Any
 from ..db.neo4j import execute_read_query
 from ..schemas.graph import GraphNode, GraphRelationship, GraphResponse
+from ..exceptions import InvalidParameterError
 
 
 async def get_graph_data(request: Request, depth: int = 1, node_limit: int = 500) -> GraphResponse:
@@ -24,16 +25,16 @@ async def get_graph_data(request: Request, depth: int = 1, node_limit: int = 500
     """
     # Validate depth parameter
     if depth < 1 or depth > 3:
-        raise HTTPException(
-            status_code=400,
-            detail="Depth must be between 1 and 3"
+        raise InvalidParameterError(
+            parameter="depth",
+            reason="Must be between 1 and 3"
         )
 
     # Validate node_limit parameter
     if node_limit < 1 or node_limit > 1000:
-        raise HTTPException(
-            status_code=400,
-            detail="Node limit must be between 1 and 1000"
+        raise InvalidParameterError(
+            parameter="node_limit",
+            reason="Must be between 1 and 1000"
         )
 
     # Query to get nodes and relationships up to specified depth
@@ -71,7 +72,7 @@ async def get_graph_data(request: Request, depth: int = 1, node_limit: int = 500
     UNWIND allRels as r
     RETURN nodes,
            collect({{
-               id: toString(id(r)),
+               id: toString(elementId(r)),
                source: startNode(r).id,
                target: endNode(r).id,
                type: type(r),
