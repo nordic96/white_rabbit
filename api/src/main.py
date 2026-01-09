@@ -49,8 +49,8 @@ app.add_middleware(
 )
 
 # Add custom middleware for logging and error handling
-app.add_middleware(RequestLoggingMiddleware)
 app.add_middleware(ErrorLoggingMiddleware)
+app.add_middleware(RequestLoggingMiddleware)
 
 # Include routers
 app.include_router(mysteries.router)

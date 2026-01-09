@@ -56,8 +56,8 @@ export default function GraphMap() {
   const mouseCallbacks: MouseEventCallbacks = {
     onNodeClick: (node) => console.log('Clicked node:', node),
     onRelationshipClick: (rel) => console.log('Clicked rel:', rel),
-    onZoom: (zoomLevel) => console.log('Zoom level:', zoomLevel),
-    onPan: () => console.log('Panning'),
+    onZoom: true,
+    onPan: true,
     // Enable node dragging (same behavior as Neo4j Dashboard)
     onDrag: true,
   };
