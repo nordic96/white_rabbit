@@ -4,8 +4,14 @@ import { useEffect, useState, useTransition } from 'react';
 import type { Node, Relationship } from '@neo4j-nvl/base';
 import { InteractiveNvlWrapper } from '@neo4j-nvl/react';
 import type { MouseEventCallbacks } from '@neo4j-nvl/react';
-import { GraphResponse } from '@/app/types';
+import { GraphResponse, NodeType } from '@/app/types';
 
+const NodeColorMap: Record<NodeType, string> = {
+  Category: '#8BE9FD',
+  Location: '#FF79C6',
+  Mystery: '#BD93F9',
+  TimePeriod: '#F1FA8C',
+};
 export default function GraphMap() {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [relationships, setRelationships] = useState<Relationship[]>([]);
@@ -26,6 +32,7 @@ export default function GraphMap() {
           const nvlNodes: Node[] = data.nodes.map((node) => ({
             id: node.id,
             caption: node.label,
+            color: NodeColorMap[node.type],
             size: node.type === 'Mystery' ? 30 : 20,
           }));
 
