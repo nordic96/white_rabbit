@@ -16,10 +16,8 @@ const GraphMap = dynamic(() => import('./components/GraphMap/GraphMap'), {
 
 export default function Home() {
   return (
-    <div className="w-full h-screen font-sans">
-      <div className={'p-16'}>
-        <GraphMap />
-      </div>
+    <div className="w-full h-full font-sans">
+      <GraphMap />
     </div>
   );
 }
