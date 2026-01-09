@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError, HTTPException
 
 from typing import Union
-from config import settings
+from .config import settings
 import logging
 
 from .exceptions import WhiteRabbitException

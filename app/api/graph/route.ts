@@ -8,7 +8,10 @@ export async function GET() {
     const res = await fetch(`${apiUrl}/api/graph`);
     if (!res.ok) {
       const errorData = await res.json();
-      throw new Error(errorData);
+      return NextResponse.json(
+        { error: errorData.message || 'Failed to fetch graph data' },
+        { status: res.status },
+      );
     }
     const data: GraphResponse = await res.json();
     return NextResponse.json(data as GraphResponse);
