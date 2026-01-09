@@ -58,6 +58,8 @@ export default function GraphMap() {
     onRelationshipClick: (rel) => console.log('Clicked rel:', rel),
     onZoom: (zoomLevel) => console.log('Zoom level:', zoomLevel),
     onPan: () => console.log('Panning'),
+    // Enable node dragging (same behavior as Neo4j Dashboard)
+    onDrag: true,
   };
 
   // Error state
