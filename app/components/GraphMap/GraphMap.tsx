@@ -54,7 +54,20 @@ export default function GraphMap() {
   }, []);
 
   const mouseCallbacks: MouseEventCallbacks = {
-    onNodeClick: (node) => console.log('Clicked node:', node),
+    onNodeClick: async (node) => {
+      console.log('Clicked node:', node);
+      if (node.id) {
+        try {
+          const res = await fetch(`/api/mysteries/${node.id}`);
+          if (res.ok) {
+            const mysteryDetail = await res.json();
+            console.log('Mystery detail with similar mysteries:', mysteryDetail);
+          }
+        } catch (err) {
+          console.error('Failed to fetch mystery:', err);
+        }
+      }
+    },
     onRelationshipClick: (rel) => console.log('Clicked rel:', rel),
     onZoom: true,
     onPan: true,
