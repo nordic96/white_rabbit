@@ -1,42 +1,25 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 
 import useClickOutside from '@/hooks/useClickOutside';
 import { useMysteryStore } from '@/store/mysteryStore';
 import { cn } from '@/utils';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useRef } from 'react';
 
 export default function RightSidePanel() {
   const ref = useRef<HTMLDivElement>(null);
-  const selectedId = useMysteryStore((s) => s.selectedId);
-  const unSelect = useMysteryStore((s) => s.unSelect);
 
-  const [details, setDetails] = useState();
+  const selectedId = useMysteryStore((s) => s.selectedId);
+  const selectedDetail = useMysteryStore((s) =>
+    s.selectedId ? s.cache[s.selectedId] : null,
+  );
+  const isLoading = useMysteryStore((s) => s.isLoading);
+  const error = useMysteryStore((s) => s.error);
+  const unSelect = useMysteryStore((s) => s.unSelect);
 
   useClickOutside(ref, (e) => {
     e.preventDefault();
     unSelect();
   });
-
-  const fetchDetails = useCallback(async () => {
-    if (selectedId === null) {
-      return;
-    }
-    try {
-      const res = await fetch(`/api/mysteries/${selectedId}`);
-      if (res.ok) {
-        const mysteryDetail = await res.json();
-        setDetails(mysteryDetail);
-        console.log('Mystery detail with similar mysteries:', mysteryDetail);
-      }
-    } catch (err) {
-      console.error('Failed to fetch mystery:', err);
-    }
-  }, [selectedId, setDetails]);
-
-  useEffect(() => {
-    fetchDetails();
-  }, [fetchDetails]);
 
   return (
     <div
@@ -48,7 +31,11 @@ export default function RightSidePanel() {
         'w-180 h-220 border border-black bg-white',
       )}
     >
-      {JSON.stringify(details)}
+      {isLoading && <div className="p-4">Loading...</div>}
+      {error && <div className="p-4 text-red-500">{error}</div>}
+      {selectedDetail && (
+        <div className="p-4">{JSON.stringify(selectedDetail)}</div>
+      )}
     </div>
   );
 }
