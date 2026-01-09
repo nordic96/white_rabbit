@@ -1,34 +1,96 @@
 'use client';
 
+import { useEffect, useState, useTransition } from 'react';
+import type { Node, Relationship } from '@neo4j-nvl/base';
+import { InteractiveNvlWrapper } from '@neo4j-nvl/react';
+import type { MouseEventCallbacks } from '@neo4j-nvl/react';
 import { GraphResponse } from '@/app/types';
-import { BasicNvlWrapper } from '@neo4j-nvl/react';
-import { useEffect, useState } from 'react';
 
 export default function GraphMap() {
-  const [graphData, setGraphData] = useState<GraphResponse>();
+  const [nodes, setNodes] = useState<Node[]>([]);
+  const [relationships, setRelationships] = useState<Relationship[]>([]);
+  const [error, setError] = useState<string>();
+  const [isPending, startTransition] = useTransition();
+
   useEffect(() => {
     async function fetchGraphData() {
-      await fetch('/api/graph')
-        .then((v) => v.json())
-        .then((v) => {
-          setGraphData(v as GraphResponse);
+      try {
+        const response = await fetch('/api/graph');
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const data: GraphResponse = await response.json();
+
+        // Use startTransition for non-urgent state updates
+        startTransition(() => {
+          // Transform to NVL format
+          const nvlNodes: Node[] = data.nodes.map((node) => ({
+            id: node.id,
+            caption: node.label,
+            size: node.type === 'Mystery' ? 30 : 20,
+          }));
+
+          const nvlRels: Relationship[] = data.relationships.map((rel) => ({
+            id: rel.id,
+            from: rel.source,
+            to: rel.target,
+            caption: rel.type,
+          }));
+
+          setNodes(nvlNodes);
+          setRelationships(nvlRels);
         });
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Unknown error');
+      }
     }
     fetchGraphData();
   }, []);
 
-  if (!graphData) {
-    return null;
+  const mouseCallbacks: MouseEventCallbacks = {
+    onNodeClick: (node) => console.log('Clicked node:', node),
+    onRelationshipClick: (rel) => console.log('Clicked rel:', rel),
+    onZoom: (zoomLevel) => console.log('Zoom level:', zoomLevel),
+    onPan: () => console.log('Panning'),
+  };
+
+  // Error state
+  if (error) {
+    return (
+      <div className="w-full h-screen flex items-center justify-center text-red-500">
+        Error: {error}
+      </div>
+    );
+  }
+
+  // Loading/pending state
+  if (isPending || nodes.length === 0) {
+    return (
+      <div className="w-full h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p>Loading graph data...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <BasicNvlWrapper
-      nodes={graphData.nodes}
-      rels={graphData.relationships.map((x) => ({
-        ...x,
-        from: x.source,
-        to: x.target,
-      }))}
-    />
+    <div className="w-full h-screen">
+      <InteractiveNvlWrapper
+        nodes={nodes}
+        rels={relationships}
+        mouseEventCallbacks={mouseCallbacks}
+        nvlOptions={{
+          disableWebWorkers: true, // KEY FIX: Run layout on main thread
+          disableTelemetry: true,
+          initialZoom: 1,
+          minZoom: 0.1,
+          maxZoom: 5,
+        }}
+        nvlCallbacks={{
+          onLayoutDone: () => console.log('Layout complete'),
+        }}
+      />
+    </div>
   );
 }
