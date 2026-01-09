@@ -40,6 +40,8 @@ async def get_mysteries(
            m.title as title,
            m.status as status,
            m.confidence_score as confidence_score,
+           m.image_source as image_source,
+           m.video_source as video_source,
            m.first_reported_year as first_reported_year,
            m.last_reported_year as last_reported_year
     ORDER BY m.first_reported_year DESC
@@ -75,6 +77,8 @@ async def get_mysteries(
             id=item["id"],
             title=item["title"],
             status=MysteryStatus(item["status"]),
+            image_source=item.get("image_source"),
+            video_source=item.get("video_source"),  
             confidence_score=item.get("confidence_score"),
             first_reported_year=item.get("first_reported_year"),
             last_reported_year=item.get("last_reported_year"),
@@ -159,6 +163,8 @@ async def get_mystery_by_id(request: Request, mystery_id: str) -> MysteryDetail:
         id=mystery_node["id"],
         title=mystery_node["title"],
         status=MysteryStatus(mystery_node["status"]),
+        image_source=mystery_node.get("image_source"),
+        video_source=mystery_node.get("video_source"),
         confidence_score=mystery_node.get("confidence_score"),
         first_reported_year=mystery_node.get("first_reported_year"),
         last_reported_year=mystery_node.get("last_reported_year"),

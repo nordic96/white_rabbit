@@ -17,6 +17,8 @@ class MysteryListItem(MysteryBase):
     """Mystery item in list responses."""
     id: str = Field(description="Unique identifier for the mystery")
     confidence_score: Optional[float] = Field(None, description="Confidence score for the mystery")
+    image_source: Optional[list[str]] = Field(None, description="Related Image Source Array")
+    video_source: Optional[list[str]] = Field(None, description="Related Youtube/Video Link Source Array") 
     first_reported_year: Optional[int] = Field(None, description="First reported year")
     last_reported_year: Optional[int] = Field(None, description="Last reported year")
 
@@ -48,6 +50,8 @@ class MysteryDetail(MysteryBase):
     """Detailed mystery with related nodes."""
     id: str = Field(description="Unique identifier for the mystery")
     confidence_score: Optional[float] = Field(None, description="Confidence score for the mystery")
+    image_source: Optional[list[str]] = Field(None, description="Related Image Source Array")
+    video_source: Optional[list[str]] = Field(None, description="Related Youtube/Video Link Source Array") 
     first_reported_year: Optional[int] = Field(None, description="First reported year")
     last_reported_year: Optional[int] = Field(None, description="Last reported year")
     locations: List[LocationNode] = Field(default_factory=list, description="Associated locations")
