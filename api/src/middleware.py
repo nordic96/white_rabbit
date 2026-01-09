@@ -2,12 +2,11 @@
 Middleware for request/response logging and error handling.
 """
 from fastapi import Request, Response
-from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from typing import Callable
 import logging
 import time
-import json
+import uuid
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +34,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             Response from the route handler
         """
         # Generate a unique request ID for correlation
-        request_id = id(request)
+        request_id = str(uuid.uuid4())
 
         # Extract client information
         client_host = request.client.host if request.client else "unknown"

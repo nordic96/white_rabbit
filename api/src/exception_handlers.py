@@ -7,8 +7,9 @@ that match the ErrorResponse schema.
 from fastapi import Request, status
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError, HTTPException
-from pydantic import ValidationError as PydanticValidationError
+
 from typing import Union
+from .config import settings
 import logging
 
 from .exceptions import WhiteRabbitException
@@ -157,7 +158,7 @@ async def generic_exception_handler(
         error="InternalServerError",
         message="An unexpected error occurred. Please try again later.",
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        details={"error_type": type(exc).__name__},
+        details={"error_type": type(exc).__name__} if settings.debug else None,
         path=str(request.url.path)
     )
 

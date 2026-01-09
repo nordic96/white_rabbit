@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     neo4j_username: str = "neo4j"
     neo4j_password: str  # No default - must be set explicitly
     neo4j_database: str = "neo4j"
-
+    debug: bool = False
     model_config = SettingsConfigDict(
         env_file=[".env.local", ".env"],
         env_file_encoding="utf-8"
