@@ -1,5 +1,5 @@
-import { API_URL } from '@/app/config';
-import { GraphResponse } from '@/app/types';
+import { API_URL } from '@/config';
+import { GraphResponse } from '@/types';
 import { NextResponse } from 'next/server';
 
 export async function GET() {

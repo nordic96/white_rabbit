@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { API_URL } from '@/app/config';
-import { MysteryDetail } from '@/app/types';
+import { API_URL } from '@/config';
+import { MysteryDetail } from '@/types';
 import { NextResponse } from 'next/server';
 
 export async function GET(

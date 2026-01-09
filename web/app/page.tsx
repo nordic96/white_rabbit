@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 
-const GraphMap = dynamic(() => import('./components/GraphMap/GraphMap'), {
+const GraphMap = dynamic(() => import('../components/GraphMap/GraphMap'), {
   ssr: false,
   loading: () => (
     <div className="w-full h-screen flex items-center justify-center">

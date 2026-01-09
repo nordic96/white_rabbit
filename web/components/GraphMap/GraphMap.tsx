@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from 'react';
 import type { Node, Relationship } from '@neo4j-nvl/base';
 import { InteractiveNvlWrapper } from '@neo4j-nvl/react';
 import type { MouseEventCallbacks } from '@neo4j-nvl/react';
-import { GraphResponse, NodeType } from '@/app/types';
+import { GraphResponse, NodeType } from '@/types';
 
 const NodeColorMap: Record<NodeType, string> = {
   Category: '#8BE9FD',
@@ -61,7 +61,10 @@ export default function GraphMap() {
           const res = await fetch(`/api/mysteries/${node.id}`);
           if (res.ok) {
             const mysteryDetail = await res.json();
-            console.log('Mystery detail with similar mysteries:', mysteryDetail);
+            console.log(
+              'Mystery detail with similar mysteries:',
+              mysteryDetail,
+            );
           }
         } catch (err) {
           console.error('Failed to fetch mystery:', err);
@@ -97,7 +100,7 @@ export default function GraphMap() {
   }
 
   return (
-    <div className="w-full h-screen">
+    <div className="w-full h-screen border border-black">
       <InteractiveNvlWrapper
         nodes={nodes}
         rels={relationships}
