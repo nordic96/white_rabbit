@@ -25,10 +25,10 @@ export default function RightSidePanel() {
     <div
       ref={ref}
       className={cn(
-        'absolute top-[40%] -translate-y-[40%] right-0 transition-transform ease-in-out',
-        { 'translate-x-200': selectedId === null },
-        { 'translate-x-0': selectedId !== null },
-        'w-180 h-220 border border-black bg-white',
+        'absolute  right-[50%] translate-x-[50%] transition-transform ease-in-out',
+        { 'tranlate-y-200': selectedId === null },
+        { 'top-[70%] -translate-y-[70%]': selectedId !== null },
+        'w-180 h-200 border border-black bg-white',
       )}
     >
       {isLoading && <div className="p-4">Loading...</div>}
