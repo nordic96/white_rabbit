@@ -1,8 +1,9 @@
 'use client';
 
+import RightSidePanel from '@/components/RightSidePanel/RightSidePanel';
 import dynamic from 'next/dynamic';
 
-const GraphMap = dynamic(() => import('./components/GraphMap/GraphMap'), {
+const GraphMap = dynamic(() => import('../components/GraphMap/GraphMap'), {
   ssr: false,
   loading: () => (
     <div className="w-full h-screen flex items-center justify-center">
@@ -16,10 +17,9 @@ const GraphMap = dynamic(() => import('./components/GraphMap/GraphMap'), {
 
 export default function Home() {
   return (
-    <div className="w-full h-screen font-sans">
-      <div className={'p-16'}>
-        <GraphMap />
-      </div>
+    <div className="relative w-full h-full font-sans overflow-hidden">
+      <GraphMap />
+      <RightSidePanel />
     </div>
   );
 }

@@ -2,7 +2,7 @@
 name: frontend-dev
 description: Frontend development specialist for Next.js, React, and TypeScript tasks. Use for UI component development, styling with Tailwind CSS, frontend performance optimization, and browser testing with Playwright.
 tools: Read, Edit, Write, Glob, Grep, Bash, mcp__playwright
-model: opus
+model: sonnet
 ---
 
 You are a senior frontend developer specializing in Next.js and React development.

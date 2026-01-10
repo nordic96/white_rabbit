@@ -4,7 +4,7 @@ Mystery service layer for database operations.
 from fastapi import Request
 from typing import List, Optional, Dict, Any
 from ..db.neo4j import execute_read_query
-from ..schemas.mystery import MysteryListItem, MysteryDetail, LocationNode, TimePeriodNode, CategoryNode
+from ..schemas.mystery import MysteryListItem, MysteryDetail, LocationNode, TimePeriodNode, CategoryNode, SimilarMysteryNode
 from ..schemas.common import MysteryStatus
 from ..exceptions import ResourceNotFoundError, DatabaseQueryError
 import logging
@@ -108,10 +108,12 @@ async def get_mystery_by_id(request: Request, mystery_id: str) -> MysteryDetail:
     OPTIONAL MATCH (m)-[:LOCATED_AT]->(l:Location)
     OPTIONAL MATCH (m)-[:OCCURRED_IN]->(t:TimePeriod)
     OPTIONAL MATCH (m)-[:HAS_CATEGORY]->(c:Category)
+    OPTIONAL MATCH (m)-[sim:SIMILAR_TO]->(similar:Mystery)
     RETURN m,
            collect(DISTINCT l) as locations,
            collect(DISTINCT t) as time_periods,
-           collect(DISTINCT c) as categories
+           collect(DISTINCT c) as categories,
+           collect(DISTINCT {id: similar.id, title: similar.title, score: sim.score, reasons: sim.reasons}) as similar_mysteries
     """
 
     parameters = {"mystery_id": mystery_id}
@@ -159,6 +161,18 @@ async def get_mystery_by_id(request: Request, mystery_id: str) -> MysteryDetail:
         if cat is not None
     ]
 
+    # Parse similar mysteries
+    similar_mysteries = [
+        SimilarMysteryNode(
+            id=sim["id"],
+            title=sim["title"],
+            score=sim["score"],
+            reasons=sim["reasons"] if sim["reasons"] else []
+        )
+        for sim in data["similar_mysteries"]
+        if sim is not None and sim.get("id") is not None
+    ]
+
     return MysteryDetail(
         id=mystery_node["id"],
         title=mystery_node["title"],
@@ -170,5 +184,6 @@ async def get_mystery_by_id(request: Request, mystery_id: str) -> MysteryDetail:
         last_reported_year=mystery_node.get("last_reported_year"),
         locations=locations,
         time_periods=time_periods,
-        categories=categories
+        categories=categories,
+        similar_mysteries=similar_mysteries
     )

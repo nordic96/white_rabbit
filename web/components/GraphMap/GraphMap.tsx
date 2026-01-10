@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useCallback, useEffect, useState, useTransition } from 'react';
 import type { Node, Relationship } from '@neo4j-nvl/base';
 import { InteractiveNvlWrapper } from '@neo4j-nvl/react';
 import type { MouseEventCallbacks } from '@neo4j-nvl/react';
-import { GraphResponse, NodeType } from '@/app/types';
+import { GraphResponse, NodeType } from '@/types';
+import { useMysteryStore } from '@/store/mysteryStore';
 
 const NodeColorMap: Record<NodeType, string> = {
   Category: '#8BE9FD',
@@ -12,50 +13,61 @@ const NodeColorMap: Record<NodeType, string> = {
   Mystery: '#BD93F9',
   TimePeriod: '#F1FA8C',
 };
+
+const MYSTERY_ID_PREFIX = 'm-';
+
 export default function GraphMap() {
+  const setSelectedId = useMysteryStore((s) => s.setSelectedId);
+
   const [nodes, setNodes] = useState<Node[]>([]);
   const [relationships, setRelationships] = useState<Relationship[]>([]);
   const [error, setError] = useState<string>();
   const [isPending, startTransition] = useTransition();
 
-  useEffect(() => {
-    async function fetchGraphData() {
-      try {
-        const response = await fetch('/api/graph');
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const fetchGraphCallback = useCallback(async () => {
+    try {
+      const response = await fetch('/api/graph');
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-        const data: GraphResponse = await response.json();
+      const data: GraphResponse = await response.json();
 
-        // Use startTransition for non-urgent state updates
-        startTransition(() => {
-          // Transform to NVL format
-          const nvlNodes: Node[] = data.nodes.map((node) => ({
-            id: node.id,
-            caption: node.label,
-            color: NodeColorMap[node.type],
-            size: node.type === 'Mystery' ? 30 : 20,
-          }));
+      // Use startTransition for non-urgent state updates
+      startTransition(() => {
+        // Transform to NVL format
+        const nvlNodes: Node[] = data.nodes.map((node) => ({
+          id: node.id,
+          caption: node.label,
+          color: NodeColorMap[node.type],
+          size: node.type === 'Mystery' ? 30 : 20,
+        }));
 
-          const nvlRels: Relationship[] = data.relationships.map((rel) => ({
-            id: rel.id,
-            from: rel.source,
-            to: rel.target,
-            caption: rel.type,
-          }));
+        const nvlRels: Relationship[] = data.relationships.map((rel) => ({
+          id: rel.id,
+          from: rel.source,
+          to: rel.target,
+          caption: rel.type,
+        }));
 
-          setNodes(nvlNodes);
-          setRelationships(nvlRels);
-        });
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
-      }
+        setNodes(nvlNodes);
+        setRelationships(nvlRels);
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
     }
-    fetchGraphData();
   }, []);
 
+  useEffect(() => {
+    fetchGraphCallback();
+  }, [fetchGraphCallback]);
+
   const mouseCallbacks: MouseEventCallbacks = {
-    onNodeClick: (node) => console.log('Clicked node:', node),
-    onRelationshipClick: (rel) => console.log('Clicked rel:', rel),
+    onNodeClick: async (node) => {
+      if (node.id && node.id.startsWith(MYSTERY_ID_PREFIX)) {
+        setSelectedId(node.id);
+      }
+    },
+    onRelationshipClick: true,
+    onHover: true,
     onZoom: true,
     onPan: true,
     // Enable node dragging (same behavior as Neo4j Dashboard)
@@ -84,7 +96,7 @@ export default function GraphMap() {
   }
 
   return (
-    <div className="w-full h-screen">
+    <div className="w-full h-screen border border-black">
       <InteractiveNvlWrapper
         nodes={nodes}
         rels={relationships}
