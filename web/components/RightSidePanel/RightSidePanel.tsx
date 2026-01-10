@@ -3,7 +3,7 @@
 import useClickOutside from '@/hooks/useClickOutside';
 import { useMysteryStore } from '@/store/mysteryStore';
 import { cn } from '@/utils';
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 
 export default function RightSidePanel() {
   const ref = useRef<HTMLDivElement>(null);
@@ -16,14 +16,26 @@ export default function RightSidePanel() {
   const error = useMysteryStore((s) => s.error);
   const unSelect = useMysteryStore((s) => s.unSelect);
 
-  useClickOutside(ref, (e) => {
-    e.preventDefault();
+  useClickOutside(ref, () => {
     unSelect();
   });
+
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectedId) {
+        unSelect();
+      }
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [selectedId, unSelect]);
 
   return (
     <div
       ref={ref}
+      role={'complementary'}
+      aria-label={'Mystery details panel'}
+      aria-hidden={selectedId === null}
       className={cn(
         'absolute  right-[50%] translate-x-[50%] transition-transform ease-in-out',
         { 'translate-y-200': selectedId === null },

@@ -27,7 +27,10 @@ export const useMysteryStore = create<MysteryStore>()((set, get) => ({
   ...initialState,
 
   setSelectedId: (id: string) => {
-    const cached = get().cache[id];
+    const state = get();
+    if (state.selectedId === id) return;
+
+    const cached = state.cache[id];
     set({
       selectedId: id,
       error: null,
@@ -35,7 +38,7 @@ export const useMysteryStore = create<MysteryStore>()((set, get) => ({
     });
 
     if (!cached) {
-      get().fetchMysteryDetail(id);
+      void get().fetchMysteryDetail(id);
     }
   },
 

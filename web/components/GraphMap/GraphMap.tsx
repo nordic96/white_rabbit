@@ -13,6 +13,9 @@ const NodeColorMap: Record<NodeType, string> = {
   Mystery: '#BD93F9',
   TimePeriod: '#F1FA8C',
 };
+
+const MYSTERY_ID_PREFIX = 'm-';
+
 export default function GraphMap() {
   const setSelectedId = useMysteryStore((s) => s.setSelectedId);
 
@@ -59,7 +62,7 @@ export default function GraphMap() {
 
   const mouseCallbacks: MouseEventCallbacks = {
     onNodeClick: async (node) => {
-      if (node.id && node.id.startsWith('m-')) {
+      if (node.id && node.id.startsWith(MYSTERY_ID_PREFIX)) {
         setSelectedId(node.id);
       }
     },

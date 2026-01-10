@@ -24,10 +24,11 @@ export async function GET(
     clearTimeout(timeoutId);
 
     if (!res.ok) {
-      return NextResponse.json(
-        { error: 'Mystery not found' },
-        { status: res.status },
-      );
+      const errorData = await res
+        .json()
+        .catch(() => ({ error: 'Unknown error' }));
+
+      return NextResponse.json(errorData, { status: res.status });
     }
     const data: MysteryDetail = await res.json();
     return NextResponse.json(data);
