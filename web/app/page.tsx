@@ -1,7 +1,8 @@
 'use client';
 
-import RightSidePanel from '@/components/RightSidePanel/RightSidePanel';
+import { MysteryModal } from '@/components/MysteryModal';
 import dynamic from 'next/dynamic';
+import { Suspense } from 'react';
 
 const GraphMap = dynamic(() => import('../components/GraphMap/GraphMap'), {
   ssr: false,
@@ -19,7 +20,9 @@ export default function Home() {
   return (
     <div className="relative w-full h-full font-sans overflow-hidden">
       <GraphMap />
-      <RightSidePanel />
+      <Suspense fallback={null}>
+        <MysteryModal />
+      </Suspense>
     </div>
   );
 }
