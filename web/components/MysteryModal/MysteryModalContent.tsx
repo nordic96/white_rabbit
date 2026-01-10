@@ -13,22 +13,41 @@ interface MysteryModalContentProps {
   onClose: () => void;
 }
 
+const ICON_PATHS = {
+  confidence: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
+  calendar:
+    'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
+  expand:
+    'M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4',
+  close: 'M6 18L18 6M6 6l12 12',
+};
+
+function getDateRangeText(
+  firstYear: number | null | undefined,
+  lastYear: number | null | undefined,
+): string | null {
+  if (!firstYear) return null;
+  if (lastYear) {
+    return `${wrapAdBc(firstYear)} - ${wrapAdBc(lastYear)}`;
+  }
+  return wrapAdBc(firstYear);
+}
+
 export default function MysteryModalContent({
   mystery,
   onClose,
-}: MysteryModalContentProps) {
+}: MysteryModalContentProps): React.ReactElement {
   const setSelectedId = useMysteryStore((state) => state.setSelectedId);
 
-  const handleSimilarMysteryClick = (id: string) => {
-    setSelectedId(id);
-  };
+  const dateRangeText = getDateRangeText(
+    mystery.first_reported_year,
+    mystery.last_reported_year,
+  );
 
-  const dateRangeText =
-    mystery.first_reported_year && mystery.last_reported_year
-      ? `${wrapAdBc(mystery.first_reported_year)} - ${wrapAdBc(mystery.last_reported_year)}`
-      : mystery.first_reported_year
-        ? `${wrapAdBc(mystery.first_reported_year)}`
-        : null;
+  const hasMedia = Boolean(
+    mystery.image_source?.length || mystery.video_source?.length,
+  );
+  const hasSimilarMysteries = mystery.similar_mysteries.length > 0;
 
   return (
     <div className="flex flex-col h-full">
@@ -53,7 +72,7 @@ export default function MysteryModalContent({
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                      d={ICON_PATHS.confidence}
                     />
                   </svg>
                   Confidence: {Math.round(mystery.confidence_score * 100)}%
@@ -71,7 +90,7 @@ export default function MysteryModalContent({
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      d={ICON_PATHS.calendar}
                     />
                   </svg>
                   {dateRangeText}
@@ -80,7 +99,6 @@ export default function MysteryModalContent({
             </div>
           </div>
           <div className="flex items-start gap-2">
-            {/* Expand button - placeholder for future */}
             <button
               type="button"
               className="p-2 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
@@ -97,11 +115,10 @@ export default function MysteryModalContent({
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
+                  d={ICON_PATHS.expand}
                 />
               </svg>
             </button>
-            {/* Close button */}
             <button
               type="button"
               onClick={onClose}
@@ -118,7 +135,7 @@ export default function MysteryModalContent({
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
+                  d={ICON_PATHS.close}
                 />
               </svg>
             </button>
@@ -128,8 +145,7 @@ export default function MysteryModalContent({
 
       {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
-        {/* Media Sources (Optional) */}
-        {(mystery.image_source?.length || mystery.video_source?.length) && (
+        {hasMedia && (
           <>
             <div>
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
@@ -174,39 +190,34 @@ export default function MysteryModalContent({
                 ))}
               </div>
             </div>
-            {/* Section Divider */}
             <div className="border-t border-gray-200 dark:border-gray-700" />
           </>
         )}
 
-        {/* Metadata Section */}
         <MetadataSection
           locations={mystery.locations}
           timePeriods={mystery.time_periods}
           categories={mystery.categories}
         />
 
-        {/* Section Divider */}
-        {mystery.similar_mysteries.length > 0 && (
-          <div className="border-t border-gray-200 dark:border-gray-700" />
-        )}
-
-        {/* Similar Mysteries */}
-        {mystery.similar_mysteries.length > 0 && (
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-              Similar Mysteries
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {mystery.similar_mysteries.map((similar) => (
-                <SimilarMysteryCard
-                  key={similar.id}
-                  mystery={similar}
-                  onClick={handleSimilarMysteryClick}
-                />
-              ))}
+        {hasSimilarMysteries && (
+          <>
+            <div className="border-t border-gray-200 dark:border-gray-700" />
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                Similar Mysteries
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {mystery.similar_mysteries.map((similar) => (
+                  <SimilarMysteryCard
+                    key={similar.id}
+                    mystery={similar}
+                    onClick={setSelectedId}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
+          </>
         )}
       </div>
     </div>
