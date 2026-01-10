@@ -27,10 +27,13 @@ export const useMysteryStore = create<MysteryStore>()((set, get) => ({
   ...initialState,
 
   setSelectedId: (id: string) => {
-    set({ selectedId: id, error: null });
-
-    // Check cache before fetching
     const cached = get().cache[id];
+    set({
+      selectedId: id,
+      error: null,
+      isLoading: !cached, // Set loading immediately if not cached
+    });
+
     if (!cached) {
       get().fetchMysteryDetail(id);
     }

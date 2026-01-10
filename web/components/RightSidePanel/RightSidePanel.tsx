@@ -26,7 +26,7 @@ export default function RightSidePanel() {
       ref={ref}
       className={cn(
         'absolute  right-[50%] translate-x-[50%] transition-transform ease-in-out',
-        { 'tranlate-y-200': selectedId === null },
+        { 'translate-y-200': selectedId === null },
         { 'top-[70%] -translate-y-[70%]': selectedId !== null },
         'w-180 h-200 border border-black bg-white',
       )}
