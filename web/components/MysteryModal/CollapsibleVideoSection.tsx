@@ -51,6 +51,7 @@ export default function CollapsibleVideoSection({
               title={`Video ${activeIndex + 1}`}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               referrerPolicy="strict-origin-when-cross-origin"
+              loading="lazy"
               allowFullScreen
             />
           </div>

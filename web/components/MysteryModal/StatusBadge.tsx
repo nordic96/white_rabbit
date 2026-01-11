@@ -42,11 +42,19 @@ function formatStatus(str: string): string {
 }
 
 function getStatusType(normalizedStatus: string): StatusType {
-  if (normalizedStatus === 'solved') return 'solved';
-  if (normalizedStatus === 'unsolved') return 'unsolved';
-  if (normalizedStatus === 'disputed' || normalizedStatus.includes('partial'))
-    return 'disputed';
-  return 'default';
+  switch (normalizedStatus) {
+    case 'solved':
+      return 'solved';
+    case 'unsolved':
+      return 'unsolved';
+    case 'disputed':
+      return 'disputed';
+    default:
+      if (normalizedStatus.includes('partial')) {
+        return 'disputed';
+      }
+      return 'default';
+  }
 }
 
 export default function StatusBadge({
