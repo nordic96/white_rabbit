@@ -66,11 +66,7 @@ export default function MetadataSection({
   categories,
 }: MetadataSectionProps): React.ReactElement {
   return (
-    <div className="space-y-6">
-      <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-        Details
-      </h3>
-
+    <div className="space-y-6 flex gap-4">
       {locations.length > 0 && (
         <div>
           <SectionHeader iconPaths={ICON_PATHS.location} title="Locations" />
@@ -99,7 +95,7 @@ export default function MetadataSection({
             {timePeriods.map((period) => (
               <span
                 key={period.id}
-                className={`inline-flex items-center px-3 py-1.5 rounded-lg text-sm border ${TAG_STYLES.time}`}
+                className={`inline-flex flex-col items-center px-3 py-1.5 rounded-lg text-sm border ${TAG_STYLES.time}`}
               >
                 {period.label}
                 {period.start_year && period.end_year && (
