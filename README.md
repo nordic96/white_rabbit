@@ -3,6 +3,8 @@
 
 ## 0. Project Overview
 
+![Demo GIF](/resources/white_rabbit_demo.gif)
+
 A Web Application with Neo4J's Knowledge Database on World's unsolved mystyeries.
 
 > DISCLAIMER: Mysteries are Mysteries for a reason, it is not a fact and 
