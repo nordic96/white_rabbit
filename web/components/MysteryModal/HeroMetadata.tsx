@@ -60,7 +60,7 @@ export default function HeroMetadata({
       <div className="space-y-4 pr-12">
         <h2
           id="mystery-modal-title"
-          className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-gray-100"
+          className="text-2xl lg:text-5xl font-extrabold text-gray-900 dark:text-gray-100"
         >
           {title}
         </h2>
