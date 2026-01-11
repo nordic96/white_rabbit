@@ -114,7 +114,7 @@ export default function MysteryModal() {
       onClick={handleBackdropClick}
     >
       <div
-        className="relative w-full max-w-5xl max-h-[90vh] bg-white dark:bg-dark-gray rounded-lg shadow-2xl overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-200"
+        className="relative w-full max-w-5xl max-h-[90vh] bg-white dark:bg-dark-gray rounded-lg shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 slide-in-from-bottom-4 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Loading State */}

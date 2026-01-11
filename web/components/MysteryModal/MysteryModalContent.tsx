@@ -40,7 +40,7 @@ export default function MysteryModalContent({
   const hasSimilarMysteries = mystery.similar_mysteries.length > 0;
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-0">
       {/* Hero Section - Fixed at top */}
       <HeroSection
         images={allImages}
@@ -55,7 +55,7 @@ export default function MysteryModalContent({
       />
 
       {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+      <div className="flex-1 overflow-y-auto min-h-0 p-6 space-y-6">
         {/* Collapsible Video Section */}
         <CollapsibleVideoSection videos={videos} />
         {hasSimilarMysteries && (
