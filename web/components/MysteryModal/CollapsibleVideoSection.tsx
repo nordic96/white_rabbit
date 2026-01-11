@@ -1,16 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import { HiPlay, HiChevronDown } from 'react-icons/hi';
 import { cn } from '@/utils/cn';
 
 interface CollapsibleVideoSectionProps {
   videos: string[];
 }
-
-const ICON_PATHS = {
-  play: 'M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
-  chevron: 'M19 9l-7 7-7-7',
-};
 
 export default function CollapsibleVideoSection({
   videos,
@@ -32,39 +28,16 @@ export default function CollapsibleVideoSection({
         aria-expanded={isOpen}
       >
         <span className="flex items-center gap-2 font-medium text-gray-900 dark:text-gray-100">
-          <svg
-            className="w-5 h-5 text-blue-500"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d={ICON_PATHS.play}
-            />
-          </svg>
+          <HiPlay className="w-5 h-5 text-blue-500" aria-hidden="true" />
           Watch Analysis Videos ({videos.length})
         </span>
-        <svg
+        <HiChevronDown
           className={cn(
             'w-5 h-5 text-gray-500 transition-transform duration-200',
             isOpen && 'rotate-180',
           )}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
           aria-hidden="true"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d={ICON_PATHS.chevron}
-          />
-        </svg>
+        />
       </button>
 
       {/* Expandable Content */}

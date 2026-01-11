@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { HiExclamationCircle } from 'react-icons/hi';
 import { useMysteryStore } from '@/store/mysteryStore';
 import MysteryModalContent from './MysteryModalContent';
 
@@ -132,19 +133,7 @@ export default function MysteryModal() {
         {error && !mystery && (
           <div className="flex flex-col items-center justify-center h-64 p-6">
             <div className="text-center">
-              <svg
-                className="w-16 h-16 text-red-500 mx-auto mb-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
+              <HiExclamationCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
                 Error Loading Mystery
               </h3>

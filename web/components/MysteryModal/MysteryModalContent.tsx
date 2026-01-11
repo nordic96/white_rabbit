@@ -65,7 +65,7 @@ export default function MysteryModalContent({
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                 Similar Mysteries
               </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 {mystery.similar_mysteries.map((similar) => (
                   <SimilarMysteryCard
                     key={similar.id}
