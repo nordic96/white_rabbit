@@ -26,10 +26,10 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: --font-roboto;
+  font-family: var(--font-roboto);
 }
 
 
 h1,h2,h3 {
-  font-family: --font-league-spartan;
+  font-family: var(--font-league-spartan);
 }
