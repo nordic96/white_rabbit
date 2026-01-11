@@ -10,6 +10,10 @@
   --color-foreground: var(--foreground);
   --font-league-spartan: var(--font-league-spartan);
   --font-roboto: var(--font-roboto);
+  --color-dark-blue: #00204e;
+  --color-light-blue: #00447c;
+  --color-dark-gray: #212121;
+  --color-dark-secondary: #303030;
 }
 
 @media (prefers-color-scheme: dark) {

@@ -42,7 +42,7 @@ export default function MetadataSection({
   categories,
 }: MetadataSectionProps): React.ReactElement {
   return (
-    <div className="space-y-6 flex gap-4">
+    <div className="space-y-6 grid grid-cols-3 gap-4">
       {locations.length > 0 && (
         <div>
           <SectionHeader Icon={HiLocationMarker} title="Locations" />

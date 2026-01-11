@@ -114,7 +114,7 @@ export default function MysteryModal() {
       onClick={handleBackdropClick}
     >
       <div
-        className="relative w-full max-w-5xl max-h-[90vh] bg-white dark:bg-gray-900 rounded-lg shadow-2xl overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-200"
+        className="relative w-full max-w-5xl max-h-[90vh] bg-white dark:bg-dark-gray rounded-lg shadow-2xl overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Loading State */}
@@ -134,7 +134,7 @@ export default function MysteryModal() {
           <div className="flex flex-col items-center justify-center h-64 p-6">
             <div className="text-center">
               <HiExclamationCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+              <h3 className="text-lg font-semibold text-dark-gray dark:text-gray-100 mb-2">
                 Error Loading Mystery
               </h3>
               <p className="text-gray-600 dark:text-gray-400 mb-4">{error}</p>

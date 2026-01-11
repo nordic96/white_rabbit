@@ -29,7 +29,7 @@ const STATUS_CONFIG: Record<
   },
   default: {
     colorClasses:
-      'bg-gray-100 text-gray-800 dark:bg-gray-900/40 dark:text-gray-300',
+      'bg-gray-100 text-dark-secondary dark:bg-dark-gray/40 dark:text-gray-300',
     Icon: null,
   },
 };
@@ -59,7 +59,7 @@ export default function StatusBadge({
   return (
     <span
       className={cn(
-        'inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium',
+        'inline-flex items-center p-1.5 rounded-full text-xs font-medium',
         colorClasses,
       )}
     >

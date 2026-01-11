@@ -62,7 +62,7 @@ export default function MysteryModalContent({
           <>
             <div className="border-t border-gray-200 dark:border-gray-700" />
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              <h3 className="text-lg font-semibold text-dark-gray dark:text-gray-100 mb-4">
                 Similar Mysteries
               </h3>
               <div className="grid grid-cols-3 gap-4">

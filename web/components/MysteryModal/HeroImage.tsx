@@ -13,7 +13,7 @@ export default function HeroImage({
   altText,
 }: HeroImageProps): React.ReactElement {
   return (
-    <div className="relative aspect-4/3 lg:aspect-3/4 bg-gray-100 dark:bg-gray-800 overflow-hidden">
+    <div className="relative aspect-4/3 lg:aspect-3/4 bg-gray-100 dark:bg-dark-secondary overflow-hidden">
       {imageUrl ? (
         <>
           <Image

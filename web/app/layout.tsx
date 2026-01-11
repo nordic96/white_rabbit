@@ -30,7 +30,9 @@ export default function RootLayout({
         className={`${leagueSpartan.variable} ${roboto.variable} antialiased`}
       >
         <Header />
-        <main className={'flex flex-col min-h-screen'}>{children}</main>
+        <main className={'flex flex-col min-h-screen dark:bg-dark-gray'}>
+          {children}
+        </main>
         <Footer />
       </body>
     </html>

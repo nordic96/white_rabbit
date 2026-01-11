@@ -20,7 +20,7 @@ export default function ThumbnailRow({
   }
 
   return (
-    <div className="flex gap-1 p-1 bg-gray-100 dark:bg-gray-800 overflow-x-auto">
+    <div className="flex gap-1 p-1 bg-gray-100 dark:bg-dark-secondary overflow-x-auto">
       {images.map((url, index) => (
         <button
           key={url}

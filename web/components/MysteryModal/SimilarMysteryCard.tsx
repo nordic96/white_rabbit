@@ -27,10 +27,10 @@ export default function SimilarMysteryCard({
       tabIndex={0}
       onClick={() => onClick(mystery.id)}
       onKeyDown={handleKeyDown}
-      className="group p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-blue-500 dark:hover:border-blue-400 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+      className="group p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-dark-secondary hover:border-blue-500 dark:hover:border-blue-400 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-dark-gray"
     >
       <div className="flex items-start justify-between mb-2">
-        <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2">
+        <h4 className="text-sm font-semibold text-dark-gray dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2">
           {mystery.title}
         </h4>
         <span className="ml-2 shrink-0 inline-flex items-center text-xs font-medium text-blue-600 dark:text-blue-400">

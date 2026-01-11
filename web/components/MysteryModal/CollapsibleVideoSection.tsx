@@ -24,10 +24,10 @@ export default function CollapsibleVideoSection({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+        className="w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-dark-secondary/50 hover:bg-gray-100 dark:hover:bg-dark-secondary transition-colors"
         aria-expanded={isOpen}
       >
-        <span className="flex items-center gap-2 font-medium text-gray-900 dark:text-gray-100">
+        <span className="flex items-center gap-2 font-medium text-dark-gray dark:text-gray-100">
           <HiPlay className="w-5 h-5 text-blue-500" aria-hidden="true" />
           Watch Analysis Videos ({videos.length})
         </span>
