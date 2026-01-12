@@ -1,53 +1,40 @@
 'use client';
 
 import useClickOutside from '@/hooks/useClickOutside';
-import { useMysteryStore } from '@/store/mysteryStore';
+import { useFilterStore } from '@/store';
 import { cn } from '@/utils';
 import { useEffect, useRef } from 'react';
 
 export default function RightSidePanel() {
   const ref = useRef<HTMLDivElement>(null);
-
-  const selectedId = useMysteryStore((s) => s.selectedId);
-  const selectedDetail = useMysteryStore((s) =>
-    s.selectedId ? s.cache[s.selectedId] : null,
-  );
-  const isLoading = useMysteryStore((s) => s.isLoading);
-  const error = useMysteryStore((s) => s.error);
-  const unSelect = useMysteryStore((s) => s.unSelect);
+  const { filterId, unSelectFilter } = useFilterStore();
 
   useClickOutside(ref, () => {
-    unSelect();
+    unSelectFilter();
   });
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && selectedId) {
-        unSelect();
+      if (e.key === 'Escape' && filterId) {
+        unSelectFilter();
       }
     };
     window.addEventListener('keydown', handleEscape);
     return () => window.removeEventListener('keydown', handleEscape);
-  }, [selectedId, unSelect]);
+  }, [filterId, unSelectFilter]);
 
   return (
     <div
       ref={ref}
       role={'complementary'}
-      aria-label={'Mystery details panel'}
-      aria-hidden={selectedId === null}
+      aria-label={'Filtered Mystery details panel'}
+      aria-hidden={filterId === null}
       className={cn(
-        'absolute  right-[50%] translate-x-[50%] transition-transform ease-in-out',
-        { 'translate-y-200': selectedId === null },
-        { 'top-[70%] -translate-y-[70%]': selectedId !== null },
-        'w-180 h-200 border border-black bg-white',
+        'absolute right-0 top-[50%] -translate-y-[50%] transition-transform ease-in-out',
+        { 'translate-x-200': filterId === null },
+        { 'translate-x-0': filterId !== null },
+        'w-120 h-full border border-black bg-white',
       )}
-    >
-      {isLoading && <div className="p-4">Loading...</div>}
-      {error && <div className="p-4 text-red-500">{error}</div>}
-      {selectedDetail && (
-        <div className="p-4">{JSON.stringify(selectedDetail)}</div>
-      )}
-    </div>
+    ></div>
   );
 }
