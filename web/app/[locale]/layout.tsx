@@ -1,9 +1,11 @@
 import type { Metadata } from 'next';
 import { League_Spartan, Roboto } from 'next/font/google';
-import './globals.css';
-import Footer from '../components/Footer';
-import Header from '../components/Header';
-import { NextIntlClientProvider } from 'next-intl';
+import '../globals.css';
+import Footer from '../../components/Footer';
+import Header from '../../components/Header';
+import { hasLocale, NextIntlClientProvider } from 'next-intl';
+import { notFound } from 'next/navigation';
+import { routing } from '@/i18n';
 
 const leagueSpartan = League_Spartan({
   variable: '--font-league-spartan',
@@ -23,13 +25,19 @@ export const metadata: Metadata = {
     'Mystery Knowledge Database visualisation web app built with Neo4J and NextJS',
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
+type Props = Readonly<{
   children: React.ReactNode;
-}>) {
+  params: Promise<{ locale: string }>;
+}>;
+
+export default async function RootLayout({ children, params }: Props) {
+  const { locale } = await params;
+  if (!hasLocale(routing.locales, locale)) {
+    notFound();
+  }
+
   return (
-    <html lang="en">
+    <html lang={locale}>
       <body
         className={`${leagueSpartan.variable} ${roboto.variable} antialiased`}
       >
