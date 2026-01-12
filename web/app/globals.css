@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-league-spartan: var(--font-league-spartan);
+  --font-roboto: var(--font-roboto);
+  --color-dark-blue: #00204e;
+  --color-light-blue: #00447c;
+  --color-dark-gray: #212121;
+  --color-dark-secondary: #303030;
+}
+
+@media (prefers-color-scheme: dark) {
+  /* :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  } */
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-roboto);
+}
+
+
+h1,h2,h3 {
+  font-family: var(--font-league-spartan);
+}

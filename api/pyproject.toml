@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools >= 65.5.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "white_rabbit"
+description = "FastAPI backend for White Rabbit mystery exploreation project"
+requires-python = ">=3.11"
+version= "0.0.1"
+dependencies = [
+    "fastapi[standard]",
+    "uvicorn",
+    "neo4j",
+    "python-dotenv",
+    "pydantic",
+    "pydantic-settings"
+]
+authors= [
+    { name = "Gihun Ko Stephen", email = "rhrlgns96@gmail.com" }
+]
