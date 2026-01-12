@@ -4,8 +4,16 @@ import { useCallback, useEffect, useState, useTransition } from 'react';
 import type { Node, Relationship } from '@neo4j-nvl/base';
 import { InteractiveNvlWrapper } from '@neo4j-nvl/react';
 import type { MouseEventCallbacks } from '@neo4j-nvl/react';
-import { GraphResponse, NodeType } from '@/types';
+import {
+  CATEGORY_ID_PREFIX,
+  GraphResponse,
+  LOCATION_ID_PREFIX,
+  MYSTERY_ID_PREFIX,
+  NodeType,
+  TIMEPERIOD_ID_PREFIX,
+} from '@/types';
 import { useMysteryStore } from '@/store/mysteryStore';
+import { useFilterStore } from '@/store';
 
 const NodeColorMap: Record<NodeType, string> = {
   Category: '#8BE9FD',
@@ -14,10 +22,9 @@ const NodeColorMap: Record<NodeType, string> = {
   TimePeriod: '#F1FA8C',
 };
 
-const MYSTERY_ID_PREFIX = 'm-';
-
 export default function GraphMap() {
   const setSelectedId = useMysteryStore((s) => s.setSelectedId);
+  const setFilter = useFilterStore((s) => s.setFilter);
 
   const [nodes, setNodes] = useState<Node[]>([]);
   const [relationships, setRelationships] = useState<Relationship[]>([]);
@@ -62,8 +69,15 @@ export default function GraphMap() {
 
   const mouseCallbacks: MouseEventCallbacks = {
     onNodeClick: async (node) => {
-      if (node.id && node.id.startsWith(MYSTERY_ID_PREFIX)) {
+      if (!node.id) return;
+      if (node.id.startsWith(MYSTERY_ID_PREFIX)) {
         setSelectedId(node.id);
+      } else if (
+        node.id.startsWith(CATEGORY_ID_PREFIX) ||
+        node.id.startsWith(LOCATION_ID_PREFIX) ||
+        node.id.startsWith(TIMEPERIOD_ID_PREFIX)
+      ) {
+        setFilter(node.id);
       }
     },
     onRelationshipClick: true,
@@ -108,9 +122,7 @@ export default function GraphMap() {
           minZoom: 0.1,
           maxZoom: 5,
         }}
-        nvlCallbacks={{
-          onLayoutDone: () => console.log('Layout complete'),
-        }}
+        nvlCallbacks={{}}
       />
     </div>
   );

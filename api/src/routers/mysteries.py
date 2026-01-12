@@ -29,7 +29,10 @@ async def list_mysteries(
     request: Request,
     limit: int = Query(default=20, ge=1, le=100, description="Number of items to return (max 100)"),
     offset: int = Query(default=0, ge=0, description="Number of items to skip"),
-    status: Optional[MysteryStatus] = Query(default=None, description="Filter by mystery status")
+    status: Optional[MysteryStatus] = Query(default=None, description="Filter by mystery status"),
+    location_id: Optional[str] = Query(default=None, description="Filter by location ID"),
+    time_period_id: Optional[str] = Query(default=None, description="Filter by time period ID"),
+    category_id: Optional[str] = Query(default=None, description="Filter by category ID")
 ):
     """
     Retrieve a paginated list of mysteries.
@@ -40,11 +43,16 @@ async def list_mysteries(
 
     **Filtering:**
     - `status`: Optional filter by mystery status (unsolved, solved, debunked, ongoing)
+    - `location_id`: Optional filter by location ID (e.g., `l-sigiriya`)
+    - `time_period_id`: Optional filter by time period ID (e.g., `tp-ancient`)
+    - `category_id`: Optional filter by category ID (e.g., `c-paranormal`)
 
     **Returns:**
     - List of mysteries with pagination metadata
     """
-    mysteries, total = await get_mysteries(request, limit, offset, status)
+    mysteries, total = await get_mysteries(
+        request, limit, offset, status, location_id, time_period_id, category_id
+    )
 
     return MysteryListResponse(
         mysteries=mysteries,

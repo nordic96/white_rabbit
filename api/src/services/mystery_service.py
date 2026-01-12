@@ -15,22 +15,52 @@ async def get_mysteries(
     request: Request,
     limit: int = 20,
     offset: int = 0,
-    status: Optional[MysteryStatus] = None
+    status: Optional[MysteryStatus] = None,
+    location_id: Optional[str] = None,
+    time_period_id: Optional[str] = None,
+    category_id: Optional[str] = None
 ) -> tuple[List[MysteryListItem], int]:
     """
-    Retrieve paginated list of mysteries with optional status filter.
+    Retrieve paginated list of mysteries with optional filters.
 
     Args:
         request: FastAPI request object for database access
         limit: Number of items to return (max 100)
         offset: Number of items to skip
         status: Optional status filter
+        location_id: Optional location ID filter
+        time_period_id: Optional time period ID filter
+        category_id: Optional category ID filter
 
     Returns:
         Tuple of (list of mysteries, total count)
     """
-    # Build query with optional status filter
-    where_clause = "WHERE m.status = $status" if status else ""
+    # Build filter conditions dynamically
+    where_conditions = []
+    parameters: Dict[str, Any] = {
+        "limit": limit,
+        "offset": offset
+    }
+
+    if status:
+        where_conditions.append("m.status = $status")
+        parameters["status"] = status.value
+
+    if location_id:
+        where_conditions.append("(m)-[:LOCATED_AT]->(:Location {id: $location_id})")
+        parameters["location_id"] = location_id
+
+    if time_period_id:
+        where_conditions.append("(m)-[:OCCURRED_IN]->(:TimePeriod {id: $time_period_id})")
+        parameters["time_period_id"] = time_period_id
+
+    if category_id:
+        where_conditions.append("(m)-[:HAS_CATEGORY]->(:Category {id: $category_id})")
+        parameters["category_id"] = category_id
+
+    where_clause = ""
+    if where_conditions:
+        where_clause = "WHERE " + " AND ".join(where_conditions)
 
     # Query for mysteries with pagination
     query = f"""
@@ -49,24 +79,19 @@ async def get_mysteries(
     LIMIT $limit
     """
 
-    # Count query for total
+    # Count query for total (uses same filters but no pagination)
     count_query = f"""
     MATCH (m:Mystery)
     {where_clause}
     RETURN count(m) as total
     """
 
-    parameters = {
-        "limit": limit,
-        "offset": offset
-    }
-
-    if status:
-        parameters["status"] = status.value
+    # Build count parameters (exclude pagination params)
+    count_parameters = {k: v for k, v in parameters.items() if k not in ("limit", "offset")}
 
     # Execute queries
     mysteries_data = await execute_read_query(request, query, parameters)
-    count_data = await execute_read_query(request, count_query, parameters if status else {})
+    count_data = await execute_read_query(request, count_query, count_parameters)
 
     total = count_data[0]["total"] if count_data else 0
     logger.info(f"Total {total} Mystery Data Found")
