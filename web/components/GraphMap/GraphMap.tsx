@@ -122,9 +122,7 @@ export default function GraphMap() {
           minZoom: 0.1,
           maxZoom: 5,
         }}
-        nvlCallbacks={{
-          onLayoutDone: () => console.log('Layout complete'),
-        }}
+        nvlCallbacks={{}}
       />
     </div>
   );
