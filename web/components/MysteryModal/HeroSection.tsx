@@ -7,6 +7,7 @@ import ThumbnailRow from './ThumbnailRow';
 import { CategoryNode, LocationNode, TimePeriodNode } from '@/types';
 
 interface HeroSectionProps {
+  id: string;
   images: string[];
   title: string;
   status: string;
@@ -20,6 +21,7 @@ interface HeroSectionProps {
 
 export default function HeroSection({
   images,
+  id,
   title,
   status,
   confidenceScore,
@@ -46,6 +48,7 @@ export default function HeroSection({
 
       {/* Right column: Metadata */}
       <HeroMetadata
+        id={id}
         title={title}
         status={status}
         confidenceScore={confidenceScore}

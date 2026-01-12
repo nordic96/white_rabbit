@@ -30,7 +30,6 @@ export interface MysteryDetail {
   title: string;
   status: string;
   confidence_score?: number;
-  short_description?: string;
   image_source?: string[];
   video_source?: string[];
   first_reported_year?: number;
