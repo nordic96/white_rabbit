@@ -40,3 +40,21 @@ export interface MysteryDetail {
   categories: CategoryNode[];
   similar_mysteries: SimilarMystery[];
 }
+
+export interface MysteryItem {
+  id: string;
+  title: string;
+  status: string;
+  confidence_score?: number;
+  image_source?: string[];
+  video_source?: string[];
+  first_reported_year?: number;
+  last_reported_year?: number;
+}
+
+export interface ApiMysteryListResponse {
+  mysteries: MysteryItem[];
+  total: number;
+  limit: number;
+  offset: number;
+}

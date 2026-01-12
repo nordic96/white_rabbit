@@ -3,8 +3,6 @@ Common schemas and enums used across the API.
 """
 from enum import Enum
 from pydantic import BaseModel, Field
-from typing import Optional
-
 
 class MysteryStatus(str, Enum):
     """Status of a mystery entry."""

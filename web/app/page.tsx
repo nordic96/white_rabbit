@@ -1,6 +1,7 @@
 'use client';
 
 import { MysteryModal } from '@/components/MysteryModal';
+import RightSidePanel from '@/components/RightSidePanel/RightSidePanel';
 import dynamic from 'next/dynamic';
 import { Suspense } from 'react';
 
@@ -22,6 +23,7 @@ export default function Home() {
       <GraphMap />
       <Suspense fallback={null}>
         <MysteryModal />
+        <RightSidePanel />
       </Suspense>
     </div>
   );

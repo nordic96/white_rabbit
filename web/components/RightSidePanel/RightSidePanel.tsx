@@ -1,53 +1,43 @@
 'use client';
 
-import useClickOutside from '@/hooks/useClickOutside';
-import { useMysteryStore } from '@/store/mysteryStore';
+import { useFilterStore } from '@/store';
 import { cn } from '@/utils';
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
+import FilterResultsSection from '../FilterResultsSection/FilterResultsSection';
 
 export default function RightSidePanel() {
-  const ref = useRef<HTMLDivElement>(null);
+  const { filterId, unSelectFilter } = useFilterStore();
 
-  const selectedId = useMysteryStore((s) => s.selectedId);
-  const selectedDetail = useMysteryStore((s) =>
-    s.selectedId ? s.cache[s.selectedId] : null,
-  );
-  const isLoading = useMysteryStore((s) => s.isLoading);
-  const error = useMysteryStore((s) => s.error);
-  const unSelect = useMysteryStore((s) => s.unSelect);
-
-  useClickOutside(ref, () => {
-    unSelect();
-  });
+  useEffect(() => {
+    return () => unSelectFilter();
+  }, [unSelectFilter]);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && selectedId) {
-        unSelect();
+      if (e.key === 'Escape' && filterId) {
+        unSelectFilter();
       }
     };
     window.addEventListener('keydown', handleEscape);
     return () => window.removeEventListener('keydown', handleEscape);
-  }, [selectedId, unSelect]);
+  }, [filterId, unSelectFilter]);
 
   return (
     <div
-      ref={ref}
-      role={'complementary'}
-      aria-label={'Mystery details panel'}
-      aria-hidden={selectedId === null}
+      role="complementary"
+      aria-label="Filtered Mystery details panel"
+      aria-hidden={filterId === null}
       className={cn(
-        'absolute  right-[50%] translate-x-[50%] transition-transform ease-in-out',
-        { 'translate-y-200': selectedId === null },
-        { 'top-[70%] -translate-y-[70%]': selectedId !== null },
-        'w-180 h-200 border border-black bg-white',
+        'absolute right-0 top-0 h-full transition-all duration-300 ease-out',
+        'w-90 shadow-2xl shadow-black/20 dark:shadow-black/50',
+        'border-l border-gray-200 dark:border-gray-700',
+        'bg-gray-100 dark:bg-dark-gray',
+        filterId === null
+          ? 'translate-x-full opacity-0'
+          : 'translate-x-0 opacity-100',
       )}
     >
-      {isLoading && <div className="p-4">Loading...</div>}
-      {error && <div className="p-4 text-red-500">{error}</div>}
-      {selectedDetail && (
-        <div className="p-4">{JSON.stringify(selectedDetail)}</div>
-      )}
+      <FilterResultsSection />
     </div>
   );
 }
