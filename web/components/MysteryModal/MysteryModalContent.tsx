@@ -3,6 +3,7 @@
 import { MysteryDetail } from '@/types/mystery';
 import { useMysteryStore } from '@/store/mysteryStore';
 import HeroSection from './HeroSection';
+import QuoteSection from './QuoteSection';
 import CollapsibleVideoSection from './CollapsibleVideoSection';
 import SimilarMysteryCard from './SimilarMysteryCard';
 import { wrapAdBc } from '@/utils';
@@ -56,6 +57,9 @@ export default function MysteryModalContent({
 
       {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto min-h-0 p-6 space-y-6">
+        {/* Quote Section */}
+        <QuoteSection quote={mystery.short_description} />
+
         {/* Collapsible Video Section */}
         <CollapsibleVideoSection videos={videos} />
         {hasSimilarMysteries && (
