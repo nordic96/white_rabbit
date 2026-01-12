@@ -1,5 +1,5 @@
 import { API_URL } from '@/config';
-import { MysteryListResponse } from '@/types';
+import { ApiMysteryListResponse } from '@/types';
 import { fetchApi } from '@/utils';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     if (location) url.searchParams.append('location_id', location);
     if (timeperiod) url.searchParams.append('time_period_id', timeperiod);
 
-    const res = await fetchApi<MysteryListResponse>(url, {
+    const res = await fetchApi<ApiMysteryListResponse>(url, {
       signal: controller.signal,
     });
     clearTimeout(timeoutId);

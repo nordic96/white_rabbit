@@ -51,7 +51,9 @@ export interface MysteryItem {
   last_reported_year?: number;
 }
 
-export type MysteryListResponse = MysteryItem[];
 export interface ApiMysteryListResponse {
   mysteries: MysteryItem[];
+  total: number;
+  limit: number;
+  offset: number;
 }

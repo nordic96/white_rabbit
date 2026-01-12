@@ -1,10 +1,14 @@
 import {
+  ApiMysteryListResponse,
   CATEGORY_ID_PREFIX,
   LOCATION_ID_PREFIX,
   MysteryItem,
   TIMEPERIOD_ID_PREFIX,
 } from '@/types';
+import { fetchApi } from '@/utils';
 import { create } from 'zustand';
+
+let currentController: AbortController | null = null;
 
 interface FilterState {
   filterId: string | null;
@@ -31,6 +35,14 @@ export const useFilterStore = create<FilterStore>()((set) => ({
   ...initialState,
 
   setFilter: async (filterId: string) => {
+    // Abort any pending request
+    if (currentController) {
+      currentController.abort();
+    }
+
+    // Create new controller for this request
+    currentController = new AbortController();
+    const controller = currentController;
     set({ filterId, error: null, loading: true, filteredMysteries: [] });
 
     const baseUrl = window.location.href;
@@ -45,16 +57,16 @@ export const useFilterStore = create<FilterStore>()((set) => ({
     }
 
     try {
-      const res = await fetch(apiUrl, {
+      const res = await fetchApi<ApiMysteryListResponse>(apiUrl, {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
       });
 
       if (!res.ok) {
         throw new Error(`Error fetching mysteries with ${filterId}`);
       }
 
-      const data = await res.json();
+      const data = res.data;
       set({ filteredMysteries: data.mysteries || [], loading: false });
     } catch (e) {
       set({
@@ -64,5 +76,12 @@ export const useFilterStore = create<FilterStore>()((set) => ({
     }
   },
 
-  unSelectFilter: () => set({ filterId: null }),
+  unSelectFilter: () => {
+    // Also abort when unselecting
+    if (currentController) {
+      currentController.abort();
+      currentController = null;
+    }
+    set({ filterId: null });
+  },
 }));
