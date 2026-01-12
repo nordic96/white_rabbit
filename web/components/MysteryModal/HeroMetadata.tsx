@@ -4,6 +4,7 @@ import { HiX, HiCheckCircle, HiCalendar } from 'react-icons/hi';
 import { CategoryNode, LocationNode, TimePeriodNode } from '@/types';
 import StatusBadge from './StatusBadge';
 import MetadataSection from './MetadataSection';
+import QuoteSection from './QuoteSection';
 
 interface HeroMetadataProps {
   title: string;
@@ -46,7 +47,8 @@ export default function HeroMetadata({
         >
           {title}
         </h2>
-
+        {/* Quote Section */}
+        <QuoteSection quote={'This is my first test section of quotes'} />
         <div className="flex flex-wrap items-center gap-3">
           <StatusBadge status={status} />
 
