@@ -3,6 +3,7 @@ import { League_Spartan, Roboto } from 'next/font/google';
 import './globals.css';
 import Footer from '../components/Footer';
 import Header from '../components/Header';
+import { NextIntlClientProvider } from 'next-intl';
 
 const leagueSpartan = League_Spartan({
   variable: '--font-league-spartan',
@@ -32,11 +33,13 @@ export default function RootLayout({
       <body
         className={`${leagueSpartan.variable} ${roboto.variable} antialiased`}
       >
-        <Header />
-        <main className={'flex flex-col min-h-screen dark:bg-dark-gray'}>
-          {children}
-        </main>
-        <Footer />
+        <NextIntlClientProvider>
+          <Header />
+          <main className={'flex flex-col min-h-screen dark:bg-dark-gray'}>
+            {children}
+          </main>
+          <Footer />
+        </NextIntlClientProvider>
       </body>
     </html>
   );
