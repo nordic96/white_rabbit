@@ -4,6 +4,7 @@ import useClickOutside from '@/hooks/useClickOutside';
 import { useFilterStore } from '@/store';
 import { cn } from '@/utils';
 import { useEffect, useRef } from 'react';
+import FilterResultsSection from '../FilterResultsSection/FilterResultsSection';
 
 export default function RightSidePanel() {
   const ref = useRef<HTMLDivElement>(null);
@@ -12,6 +13,10 @@ export default function RightSidePanel() {
   useClickOutside(ref, () => {
     unSelectFilter();
   });
+
+  useEffect(() => {
+    return () => unSelectFilter();
+  }, [unSelectFilter]);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -35,6 +40,8 @@ export default function RightSidePanel() {
         { 'translate-x-0': filterId !== null },
         'w-120 h-full border border-black bg-white',
       )}
-    ></div>
+    >
+      <FilterResultsSection />
+    </div>
   );
 }

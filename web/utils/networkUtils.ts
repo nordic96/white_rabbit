@@ -1,4 +1,5 @@
 import type { ErrorResponse } from '@/types/errorResponse';
+import { URL } from 'url';
 
 /**
  * Base API Error class that wraps backend error responses
@@ -160,7 +161,7 @@ export type ApiResponse<T> = ApiSuccess<T> | ApiFailure;
  * ```
  */
 export async function fetchApi<T>(
-  url: string,
+  url: string | URL,
   options?: RequestInit,
 ): Promise<ApiResponse<T>> {
   try {
