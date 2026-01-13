@@ -1,9 +1,9 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 
-import { useQuoteStore } from '@/store';
+import { useMysteryStore, useQuoteStore } from '@/store';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { FaPlay, FaPause } from 'react-icons/fa';
 
 interface QuoteSectionProps {
@@ -17,34 +17,74 @@ export default function QuoteSection({
   const attributeT = useTranslations('Quotes-Attributes');
 
   const [isPlaying, setIsPlaying] = useState(false);
-  const { generateQuote, loading, error } = useQuoteStore();
+  const [isReady, setIsReady] = useState(false);
+  const { generateQuote, loading, resetQuoteState } = useQuoteStore();
+  const { selectedId } = useMysteryStore();
   const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
+  const mountedRef = useRef(true);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const quote = t(id);
   const attribution = attributeT(id);
 
   useEffect(() => {
-    if (!audio) return;
-
-    audio.addEventListener('ended', () => {
-      setIsPlaying(false);
-    });
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setIsPlaying(true);
-    audio.play();
-
-    return () => {
-      audio.removeEventListener('ended', () => setIsPlaying(false));
-      setIsPlaying(false);
-    };
-  }, [audio]);
+    if (!selectedId && audio) {
+      audio.pause();
+      setAudio(null);
+    }
+  }, [audio, selectedId]);
 
   useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = '';
+        audioRef.current = null;
+      }
+      setIsPlaying(false);
+      setIsReady(false);
+      resetQuoteState();
+    };
+  }, [resetQuoteState]);
+
+  useEffect(() => {
+    if (!audio || !audio.src || loading) return;
+
+    setIsPlaying(true);
+    audio.play();
+  }, [audio, loading]);
+
+  useEffect(() => {
+    if (!id || !quote) return;
+
+    setIsReady(false);
+    setAudio(null);
+
     generateQuote(id, quote).then((url) => {
-      const audio = new Audio(url);
-      setAudio(audio);
+      if (!mountedRef.current || !url) return;
+
+      const newAudio = new Audio(url);
+      audioRef.current = newAudio;
+
+      const handleCanPlay = () => {
+        if (mountedRef.current) {
+          setAudio(newAudio);
+          setIsReady(true);
+        }
+      };
+
+      const handleEnded = () => {
+        if (mountedRef.current) {
+          setIsPlaying(false);
+        }
+      };
+
+      newAudio.addEventListener('canplaythrough', handleCanPlay);
+      newAudio.addEventListener('ended', handleEnded);
     });
-  }, [generateQuote, id, quote]);
+  }, [id, quote, generateQuote]);
 
   // Don't render if no quote is provided
   if (!quote) {
@@ -52,15 +92,15 @@ export default function QuoteSection({
   }
 
   const handlePlayPause = () => {
-    if (!audio) return;
-    if (!isPlaying) {
-      console.log('Starting TTS narration for:', quote);
-      audio.play();
+    if (!audioRef.current) return;
+
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
     } else {
-      console.log('Stopping TTS narration');
-      audio.pause();
+      audioRef.current.play();
+      setIsPlaying(true);
     }
-    setIsPlaying(!isPlaying);
   };
 
   return (
@@ -96,7 +136,7 @@ export default function QuoteSection({
         </div>
 
         {/* Play Button */}
-        {audio && (
+        {isReady && !loading && (
           <button
             onClick={handlePlayPause}
             aria-label={isPlaying ? 'Pause narration' : 'Play narration'}

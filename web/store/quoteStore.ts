@@ -11,6 +11,7 @@ interface QuoteActions {
   setLoading: (loading: boolean) => void;
   initLoading: () => void;
   setError: (error: Error | string) => void;
+  resetQuoteState: () => void;
   generateQuote: (mysteryId: string, text: string) => Promise<string>;
 }
 
@@ -27,6 +28,7 @@ export const useQuoteStore = create<QuoteStore>()((set, get) => ({
   setLoading: (loading: boolean) => set({ loading: loading }),
   initLoading: () => set({ loading: true, error: null }),
   setError: (error: string | Error) => set({ error: error }),
+  resetQuoteState: () => set({ loading: false, error: null }),
   generateQuote: async (mysteryId: string, text: string) => {
     if (currentController) {
       currentController.abort();
