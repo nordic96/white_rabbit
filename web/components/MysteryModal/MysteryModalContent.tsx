@@ -43,6 +43,7 @@ export default function MysteryModalContent({
     <div className="flex flex-col h-full min-h-0">
       {/* Hero Section - Fixed at top */}
       <HeroSection
+        id={mystery.id}
         images={allImages}
         title={mystery.title}
         status={mystery.status}

@@ -4,8 +4,11 @@ import { HiX, HiCheckCircle, HiCalendar } from 'react-icons/hi';
 import { CategoryNode, LocationNode, TimePeriodNode } from '@/types';
 import StatusBadge from './StatusBadge';
 import MetadataSection from './MetadataSection';
+import QuoteSection from './QuoteSection';
+import { useTranslations } from 'next-intl';
 
 interface HeroMetadataProps {
+  id: string;
   title: string;
   status: string;
   confidenceScore?: number;
@@ -17,6 +20,7 @@ interface HeroMetadataProps {
 }
 
 export default function HeroMetadata({
+  id,
   title,
   status,
   confidenceScore,
@@ -26,6 +30,7 @@ export default function HeroMetadata({
   locations,
   onClose,
 }: HeroMetadataProps): React.ReactElement {
+  const t = useTranslations('Quotes');
   return (
     <div className="relative flex flex-col justify-center bg-gray-50 dark:bg-dark-secondary/50 p-6 lg:p-8">
       {/* Close button in top right */}
@@ -46,7 +51,8 @@ export default function HeroMetadata({
         >
           {title}
         </h2>
-
+        {/* Quote Section */}
+        <QuoteSection quote={t(id)} />
         <div className="flex flex-wrap items-center gap-3">
           <StatusBadge status={status} />
 
