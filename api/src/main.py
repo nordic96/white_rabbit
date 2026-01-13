@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError, HTTPException
 from .config import settings
 from .db.neo4j import db_lifespan, check_db_health
-from .routers import mysteries, graph, nodes
+from .routers import mysteries, graph, nodes, tts
 from .exceptions import WhiteRabbitException
 from .middleware import RequestLoggingMiddleware, ErrorLoggingMiddleware
 from .exception_handlers import (
@@ -56,6 +56,7 @@ app.add_middleware(RequestLoggingMiddleware)
 app.include_router(mysteries.router)
 app.include_router(graph.router)
 app.include_router(nodes.router)
+app.include_router(tts.router)
 
 @app.get("/")
 async def root():
