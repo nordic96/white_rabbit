@@ -18,15 +18,31 @@ export default function QuoteSection({
 
   const [isPlaying, setIsPlaying] = useState(false);
   const { generateQuote, loading, error } = useQuoteStore();
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
 
   const quote = t(id);
   const attribution = attributeT(id);
 
   useEffect(() => {
+    if (!audio) return;
+
+    audio.addEventListener('ended', () => {
+      setIsPlaying(false);
+    });
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsPlaying(true);
+    audio.play();
+
+    return () => {
+      audio.removeEventListener('ended', () => setIsPlaying(false));
+      setIsPlaying(false);
+    };
+  }, [audio]);
+
+  useEffect(() => {
     generateQuote(id, quote).then((url) => {
-      console.log(url);
-      setAudioUrl(url);
+      const audio = new Audio(url);
+      setAudio(audio);
     });
   }, [generateQuote, id, quote]);
 
@@ -36,19 +52,15 @@ export default function QuoteSection({
   }
 
   const handlePlayPause = () => {
-    // TODO: Integrate with TTS API when available
-    setIsPlaying(!isPlaying);
-
-    // Placeholder for TTS functionality
+    if (!audio) return;
     if (!isPlaying) {
       console.log('Starting TTS narration for:', quote);
-      // Simulate playing for demo purposes
-      setTimeout(() => {
-        setIsPlaying(false);
-      }, 3000);
+      audio.play();
     } else {
       console.log('Stopping TTS narration');
+      audio.pause();
     }
+    setIsPlaying(!isPlaying);
   };
 
   return (
@@ -84,7 +96,7 @@ export default function QuoteSection({
         </div>
 
         {/* Play Button */}
-        {!loading && !error && (
+        {audio && (
           <button
             onClick={handlePlayPause}
             aria-label={isPlaying ? 'Pause narration' : 'Play narration'}

@@ -1,4 +1,5 @@
 import { API_URL } from '@/config';
+import { TTSResponse } from '@/types';
 import { fetchApi } from '@/utils';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -8,7 +9,7 @@ export async function POST(request: NextRequest) {
     const controller = new AbortController();
     const url = new URL(`${API_URL}/api/tts`);
 
-    const res = await fetchApi(url, {
+    const res = await fetchApi<TTSResponse>(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -17,7 +18,15 @@ export async function POST(request: NextRequest) {
       signal: controller.signal,
     });
     if (res.ok) {
-      return NextResponse.json(res.data);
+      const data = res.data;
+      // Transform backend URL to proxied URL
+      if (data.audio_url) {
+        data.audio_url = data.audio_url.replace(
+          '/static/audio/',
+          '/api/audio/',
+        );
+      }
+      return NextResponse.json(data);
     } else {
       throw new Error(JSON.stringify(res.error));
     }

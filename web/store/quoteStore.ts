@@ -6,6 +6,7 @@ interface QuoteState {
   loading: boolean;
   error: string | Error | null;
 }
+
 interface QuoteActions {
   setLoading: (loading: boolean) => void;
   initLoading: () => void;
@@ -20,12 +21,18 @@ const initialState: QuoteState = {
 
 type QuoteStore = QuoteState & QuoteActions;
 
+let currentController: AbortController | null = null;
 export const useQuoteStore = create<QuoteStore>()((set, get) => ({
   ...initialState,
   setLoading: (loading: boolean) => set({ loading: loading }),
   initLoading: () => set({ loading: true, error: null }),
   setError: (error: string | Error) => set({ error: error }),
   generateQuote: async (mysteryId: string, text: string) => {
+    if (currentController) {
+      currentController.abort();
+    }
+    const controller = new AbortController();
+    currentController = controller;
     const baseUrl = window.location.href;
     const apiWarmupUrl = new URL('/api/tts/warmup', baseUrl);
 
@@ -33,6 +40,7 @@ export const useQuoteStore = create<QuoteStore>()((set, get) => ({
     try {
       const warmupRes = await fetchApi<TTSWarmupResponse>(apiWarmupUrl, {
         method: 'GET', // or 'POST' if needed
+        signal: controller.signal,
       });
 
       if (
