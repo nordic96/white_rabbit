@@ -9,8 +9,10 @@ export interface TTSResponse {
   cached: boolean;
 }
 
+export type TTSModelStatus = 'ready' | 'not_loaded' | 'warmed_up';
+
 export interface TTSHealthResponse {
-  status: 'not_loaded' | 'ready';
+  status: TTSModelStatus;
   model_loaded: boolean;
   lazy_load: boolean;
   default_voice?: string;
@@ -19,6 +21,6 @@ export interface TTSHealthResponse {
 }
 
 export interface TTSWarmupResponse {
-  status: string;
+  status: TTSModelStatus;
   message: string;
 }

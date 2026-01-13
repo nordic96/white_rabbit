@@ -3,12 +3,16 @@ import { fetchApi } from '@/utils';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
-  const body = request.body;
+  const body = await request.json();
   try {
     const controller = new AbortController();
     const url = new URL(`${API_URL}/api/tts`);
 
     const res = await fetchApi(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify(body),
       signal: controller.signal,
     });

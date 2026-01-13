@@ -1,18 +1,34 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 'use client';
 
-import { useState } from 'react';
+import { useQuoteStore } from '@/store';
+import { useTranslations } from 'next-intl';
+import { useEffect, useState } from 'react';
 import { FaPlay, FaPause } from 'react-icons/fa';
 
 interface QuoteSectionProps {
-  quote?: string;
-  attribution?: string;
+  id: string;
 }
 
 export default function QuoteSection({
-  quote,
-  attribution,
+  id,
 }: QuoteSectionProps): React.ReactElement | null {
+  const t = useTranslations('Quotes');
+  const attributeT = useTranslations('Quotes-Attributes');
+
   const [isPlaying, setIsPlaying] = useState(false);
+  const { generateQuote, loading, error } = useQuoteStore();
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+
+  const quote = t(id);
+  const attribution = attributeT(id);
+
+  useEffect(() => {
+    generateQuote(id, quote).then((url) => {
+      console.log(url);
+      setAudioUrl(url);
+    });
+  }, [generateQuote, id, quote]);
 
   // Don't render if no quote is provided
   if (!quote) {
@@ -68,17 +84,19 @@ export default function QuoteSection({
         </div>
 
         {/* Play Button */}
-        <button
-          onClick={handlePlayPause}
-          aria-label={isPlaying ? 'Pause narration' : 'Play narration'}
-          className="flex items-center gap-2 p-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 rounded-lg text-gray-100 transition-all duration-200 hover:scale-105 active:scale-95 whitespace-nowrap group"
-        >
-          {isPlaying ? (
-            <FaPause className="w-3 h-3 group-hover:scale-110 transition-transform" />
-          ) : (
-            <FaPlay className="w-3 h-3 group-hover:scale-110 transition-transform" />
-          )}
-        </button>
+        {!loading && !error && (
+          <button
+            onClick={handlePlayPause}
+            aria-label={isPlaying ? 'Pause narration' : 'Play narration'}
+            className="flex items-center gap-2 p-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 rounded-lg text-gray-100 transition-all duration-200 hover:scale-105 active:scale-95 whitespace-nowrap group"
+          >
+            {isPlaying ? (
+              <FaPause className="w-3 h-3 group-hover:scale-110 transition-transform" />
+            ) : (
+              <FaPlay className="w-3 h-3 group-hover:scale-110 transition-transform" />
+            )}
+          </button>
+        )}
       </div>
     </div>
   );
