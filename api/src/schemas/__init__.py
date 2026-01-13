@@ -12,6 +12,7 @@ from .mystery import (
     TimePeriodNode,
     CategoryNode
 )
+from .tts import TTSRequest, TTSResponse
 from .node import GenericNode, NodeListResponse
 from .graph import GraphNode, GraphRelationship, GraphResponse
 
@@ -33,6 +34,9 @@ __all__ = [
     "LocationNode",
     "TimePeriodNode",
     "CategoryNode",
+    # TTS Schemas
+    "TTSRequest",
+    "TTSResponse",
     # Node schemas
     "GenericNode",
     "NodeListResponse",

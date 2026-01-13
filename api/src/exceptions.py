@@ -65,3 +65,22 @@ class InvalidParameterError(WhiteRabbitException):
     def __init__(self, parameter: str, reason: str, details: Optional[Dict[str, Any]] = None):
         message = f"Invalid parameter '{parameter}': {reason}"
         super().__init__(message=message, status_code=400, details=details)
+
+
+class TTSGenerationError(WhiteRabbitException):
+    """Raised when TTS audio generation fails."""
+    def __init__(self, message: str = "TTS audio generation failed", details: Optional[Dict[str, Any]] = None):
+        super().__init__(message=message, status_code=500, details=details)
+
+
+class TTSModelNotReadyError(WhiteRabbitException):
+    """Raised when TTS model is not ready or failed to load."""
+    def __init__(self, message: str = "TTS model is not ready", details: Optional[Dict[str, Any]] = None):
+        super().__init__(message=message, status_code=503, details=details)
+
+
+class TextTooLongError(WhiteRabbitException):
+    """Raised when input text exceeds maximum length for TTS."""
+    def __init__(self, text_length: int, max_length: int, details: Optional[Dict[str, Any]] = None):
+        message = f"Text length ({text_length}) exceeds maximum allowed length ({max_length})"
+        super().__init__(message=message, status_code=400, details=details)
