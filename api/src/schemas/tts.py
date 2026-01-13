@@ -13,7 +13,7 @@ class TTSRequest(BaseModel):
 
 class TTSResponse(BaseModel):
     """TTS Response for Text-to-Speech"""
-    audio_url: str = Field(..., example="/static/audio/atlantis_ab123cd.mp3")
+    audio_url: str = Field(..., example="/static/audio/atlantis_ab123cd.wav")
     cached: bool = Field(
         ..., description="Whether the audio was reused from cache"
     )

@@ -26,7 +26,7 @@ class TTSModelManager:
     of the Kokoro TTS model.
     """
     _instance: Optional['TTSModelManager'] = None
-    _lock = asyncio.Lock()
+    _lock = Optional[asyncio.Lock] = None
 
     def __init__(self):
         """Initialize the manager (private - use get_instance instead)."""
@@ -42,6 +42,8 @@ class TTSModelManager:
         Returns:
             TTSModelManager: The singleton instance
         """
+        if cls._lock is None:
+            cls._lock = asyncio.Lock()
         if cls._instance is None:
             async with cls._lock:
                 if cls._instance is None:

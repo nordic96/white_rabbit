@@ -85,13 +85,12 @@ app.add_middleware(RequestLoggingMiddleware)
 
 # Mount static files for audio cache
 audio_cache_path = Path(settings.tts_cache_dir)
-if audio_cache_path.exists():
-    app.mount(
-        settings.static_audio_url_prefix,
-        StaticFiles(directory=str(audio_cache_path)),
-        name="audio"
-    )
-    logger.info(f"Mounted static audio files at {settings.static_audio_url_prefix}")
+app.mount(
+    settings.static_audio_url_prefix,
+    StaticFiles(directory=str(audio_cache_path)),
+    name="audio"
+)
+logger.info(f"Mounted static audio files at {settings.static_audio_url_prefix}")
 
 # Include routers
 app.include_router(mysteries.router)
