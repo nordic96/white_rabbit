@@ -4,13 +4,12 @@ import { create } from 'zustand';
 
 interface QuoteState {
   loading: boolean;
-  error: string | Error | null;
+  error: Error | null;
 }
 
 interface QuoteActions {
   setLoading: (loading: boolean) => void;
-  initLoading: () => void;
-  setError: (error: Error | string) => void;
+  setError: (error: Error) => void;
   resetQuoteState: () => void;
   generateQuote: (mysteryId: string, text: string) => Promise<string>;
 }
@@ -23,63 +22,53 @@ const initialState: QuoteState = {
 type QuoteStore = QuoteState & QuoteActions;
 
 let currentController: AbortController | null = null;
-export const useQuoteStore = create<QuoteStore>()((set, get) => ({
+
+export const useQuoteStore = create<QuoteStore>()((set) => ({
   ...initialState,
-  setLoading: (loading: boolean) => set({ loading: loading }),
-  initLoading: () => set({ loading: true, error: null }),
-  setError: (error: string | Error) => set({ error: error }),
-  resetQuoteState: () => set({ loading: false, error: null }),
-  generateQuote: async (mysteryId: string, text: string) => {
+  setLoading: (loading) => set({ loading }),
+  setError: (error) => set({ error }),
+  resetQuoteState: () => set(initialState),
+  generateQuote: async (mysteryId, text) => {
     if (currentController) {
       currentController.abort();
     }
+
     const controller = new AbortController();
     currentController = controller;
-    const baseUrl = window.location.href;
-    const apiWarmupUrl = new URL('/api/tts/warmup', baseUrl);
 
-    get().initLoading();
+    set({ loading: true, error: null });
+
     try {
-      const warmupRes = await fetchApi<TTSWarmupResponse>(apiWarmupUrl, {
-        method: 'GET', // or 'POST' if needed
-        signal: controller.signal,
-      });
+      const baseUrl = window.location.origin;
+      const warmupRes = await fetchApi<TTSWarmupResponse>(
+        new URL('/api/tts/warmup', baseUrl),
+        { method: 'GET', signal: controller.signal },
+      );
 
-      if (
-        !warmupRes.ok ||
-        !warmupRes.data ||
-        warmupRes.data.status === 'not_loaded'
-      ) {
-        throw new Error('Model Warmup process failed. Model not loaded');
+      if (!warmupRes.ok || warmupRes.data.status === 'not_loaded') {
+        throw new Error('Model warmup failed. Model not loaded');
       }
 
-      console.log(warmupRes.data.status);
       const audioUrl = await fetchAudioUrl(mysteryId, text);
-
       return audioUrl;
     } catch (e) {
-      get().setError(e as Error);
-      return ''; // or throw, depending on your needs
+      set({ error: e instanceof Error ? e : new Error('Unknown error') });
+      return '';
     } finally {
-      get().setLoading(false);
+      set({ loading: false });
     }
   },
 }));
 
-async function fetchAudioUrl(id: string, text: string) {
-  const baseUrl = window.location.href;
-  const apiUrl = new URL('/api/tts', baseUrl);
-
-  const res = await fetchApi<TTSResponse>(apiUrl, {
+async function fetchAudioUrl(id: string, text: string): Promise<string> {
+  const baseUrl = window.location.origin;
+  const res = await fetchApi<TTSResponse>(new URL('/api/tts', baseUrl), {
     method: 'POST',
-    body: JSON.stringify({
-      mystery_id: id,
-      text: text,
-    } as TTSRequest),
+    body: JSON.stringify({ mystery_id: id, text } as TTSRequest),
   });
 
-  if (!res.ok || !res.data) {
-    throw new Error('TTS Generation API Failed');
+  if (!res.ok) {
+    throw new Error('TTS Generation API failed');
   }
   return res.data.audio_url;
 }

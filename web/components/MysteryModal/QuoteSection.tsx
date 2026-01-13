@@ -1,10 +1,9 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 
 import { useMysteryStore, useQuoteStore } from '@/store';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState, useRef } from 'react';
-import { FaPlay, FaPause } from 'react-icons/fa';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { FaPause, FaPlay } from 'react-icons/fa';
 
 interface QuoteSectionProps {
   id: string;
@@ -20,20 +19,21 @@ export default function QuoteSection({
   const [isReady, setIsReady] = useState(false);
   const { generateQuote, loading, resetQuoteState } = useQuoteStore();
   const { selectedId } = useMysteryStore();
-  const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
   const mountedRef = useRef(true);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const quote = t(id);
   const attribution = attributeT(id);
 
+  // Cleanup audio when modal closes
   useEffect(() => {
-    if (!selectedId && audio) {
-      audio.pause();
-      setAudio(null);
+    if (!selectedId && audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
     }
-  }, [audio, selectedId]);
+  }, [selectedId]);
 
+  // Cleanup on unmount
   useEffect(() => {
     mountedRef.current = true;
     return () => {
@@ -43,24 +43,32 @@ export default function QuoteSection({
         audioRef.current.src = '';
         audioRef.current = null;
       }
-      setIsPlaying(false);
-      setIsReady(false);
       resetQuoteState();
     };
   }, [resetQuoteState]);
 
-  useEffect(() => {
-    if (!audio || !audio.src || loading) return;
+  // Auto-play when audio becomes ready
+  const handleCanPlay = useCallback(() => {
+    if (mountedRef.current && audioRef.current) {
+      setIsReady(true);
+      setIsPlaying(true);
+      audioRef.current.play();
+    }
+  }, []);
 
-    setIsPlaying(true);
-    audio.play();
-  }, [audio, loading]);
+  const handleEnded = useCallback(() => {
+    if (mountedRef.current) {
+      setIsPlaying(false);
+    }
+  }, []);
 
+  // Generate and load audio
   useEffect(() => {
     if (!id || !quote) return;
 
+    // Reset ready state before loading new audio
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsReady(false);
-    setAudio(null);
 
     generateQuote(id, quote).then((url) => {
       if (!mountedRef.current || !url) return;
@@ -68,30 +76,17 @@ export default function QuoteSection({
       const newAudio = new Audio(url);
       audioRef.current = newAudio;
 
-      const handleCanPlay = () => {
-        if (mountedRef.current) {
-          setAudio(newAudio);
-          setIsReady(true);
-        }
-      };
-
-      const handleEnded = () => {
-        if (mountedRef.current) {
-          setIsPlaying(false);
-        }
-      };
-
       newAudio.addEventListener('canplaythrough', handleCanPlay);
       newAudio.addEventListener('ended', handleEnded);
     });
-  }, [id, quote, generateQuote]);
+  }, [id, quote, generateQuote, handleCanPlay, handleEnded]);
 
   // Don't render if no quote is provided
   if (!quote) {
     return null;
   }
 
-  const handlePlayPause = () => {
+  function handlePlayPause(): void {
     if (!audioRef.current) return;
 
     if (isPlaying) {
@@ -101,7 +96,7 @@ export default function QuoteSection({
       audioRef.current.play();
       setIsPlaying(true);
     }
-  };
+  }
 
   return (
     <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-dark-blue via-dark-blue to-light-blue via-80% p-3 shadow-lg">

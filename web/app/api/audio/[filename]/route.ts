@@ -34,12 +34,10 @@ export async function GET(
         'Cache-Control': 'public, max-age=31536000', // Cache for 1 year
       },
     });
-  } catch (error) {
-    if (error instanceof Error) {
-      return NextResponse.json(
-        { error: 'Failed to fetch audio' },
-        { status: 500 },
-      );
-    }
+  } catch {
+    return NextResponse.json(
+      { error: 'Failed to fetch audio' },
+      { status: 500 },
+    );
   }
 }
