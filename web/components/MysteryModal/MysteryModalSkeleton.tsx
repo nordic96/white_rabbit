@@ -11,9 +11,9 @@ export default function MysteryModalSkeleton() {
           </div>
 
           {/* Thumbnail Row Skeleton */}
-          <div className="bg-black px-4 py-3">
+          <div className="bg-dark-gray px-4 py-3">
             <div className="flex justify-center gap-2 overflow-x-auto">
-              {[...Array(4)].map((_, i) => (
+              {[...Array(6)].map((_, i) => (
                 <div
                   key={i}
                   className="w-14 h-14 shrink-0 rounded bg-gray-600"
@@ -37,7 +37,7 @@ export default function MysteryModalSkeleton() {
           </div>
 
           {/* Quote Section Skeleton */}
-          <div className="rounded-lg p-4 bg-gradient-to-r from-blue-100 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-900/30">
+          <div className="rounded-lg p-4 bg-gradient-to-r from-dark-blue to-light-blue dark:from-blue-900/30 dark:to-cyan-900/30">
             <div className="h-4 bg-blue-200/50 dark:bg-blue-800/30 rounded w-full mb-2" />
             <div className="h-4 bg-blue-200/50 dark:bg-blue-800/30 rounded w-5/6 mb-2" />
             <div className="h-4 bg-blue-200/50 dark:bg-blue-800/30 rounded w-3/4" />
@@ -78,27 +78,9 @@ export default function MysteryModalSkeleton() {
 
       {/* Scrollable Content Skeleton */}
       <div className="flex-1 overflow-y-auto min-h-0 p-6 space-y-6">
-        {/* Video Section Placeholder */}
-        <div className="space-y-3">
-          <div className="h-5 w-32 bg-gray-200 dark:bg-dark-gray rounded" />
-          <div className="aspect-video bg-gray-200 dark:bg-dark-gray rounded-lg" />
-        </div>
-
         {/* Similar Mysteries Placeholder */}
         <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
           <div className="h-5 w-40 bg-gray-200 dark:bg-dark-gray rounded mb-4" />
-          <div className="grid grid-cols-3 gap-4">
-            {[...Array(3)].map((_, i) => (
-              <div
-                key={i}
-                className="rounded-lg bg-gray-100 dark:bg-dark-secondary p-3"
-              >
-                <div className="aspect-4/3 bg-gray-200 dark:bg-dark-gray rounded mb-3" />
-                <div className="h-4 bg-gray-200 dark:bg-dark-gray rounded w-3/4 mb-2" />
-                <div className="h-3 bg-gray-200 dark:bg-dark-gray rounded w-1/2" />
-              </div>
-            ))}
-          </div>
         </div>
       </div>
     </div>
