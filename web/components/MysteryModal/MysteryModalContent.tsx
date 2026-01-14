@@ -23,6 +23,7 @@ function getDateRangeText(
   return wrapAdBc(firstYear);
 }
 
+const MAX_SIMILAR_MYSTERIES_DISPLAY = 9;
 export default function MysteryModalContent({
   mystery,
   onClose,
@@ -67,13 +68,22 @@ export default function MysteryModalContent({
                 Similar Mysteries
               </h3>
               <div className="grid grid-cols-3 gap-4">
-                {mystery.similar_mysteries.map((similar) => (
-                  <SimilarMysteryCard
-                    key={similar.id}
-                    mystery={similar}
-                    onClick={setSelectedId}
-                  />
-                ))}
+                {mystery.similar_mysteries
+                  .sort((a, b) => b.score - a.score)
+                  .slice(
+                    0,
+                    Math.min(
+                      mystery.similar_mysteries.length,
+                      MAX_SIMILAR_MYSTERIES_DISPLAY,
+                    ),
+                  )
+                  .map((similar) => (
+                    <SimilarMysteryCard
+                      key={similar.id}
+                      mystery={similar}
+                      onClick={setSelectedId}
+                    />
+                  ))}
               </div>
             </div>
           </>
