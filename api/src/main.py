@@ -6,7 +6,7 @@ from pathlib import Path
 from contextlib import asynccontextmanager
 from .config import settings
 from .db.neo4j import db_lifespan, check_db_health
-from .routers import mysteries, graph, nodes, tts
+from .routers import mysteries, graph, nodes, tts, search
 from .exceptions import WhiteRabbitException
 from .middleware import RequestLoggingMiddleware, ErrorLoggingMiddleware
 from .exception_handlers import (
@@ -97,6 +97,7 @@ app.include_router(mysteries.router)
 app.include_router(graph.router)
 app.include_router(nodes.router)
 app.include_router(tts.router)
+app.include_router(search.router)
 
 @app.get("/")
 async def root():
