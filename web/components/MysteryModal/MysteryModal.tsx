@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { HiExclamationCircle } from 'react-icons/hi';
 import { useMysteryStore } from '@/store/mysteryStore';
 import MysteryModalContent from './MysteryModalContent';
+import MysteryModalSkeleton from './MysteryModalSkeleton';
 
 export default function MysteryModal() {
   const router = useRouter();
@@ -118,16 +119,7 @@ export default function MysteryModal() {
         onClick={(e) => e.stopPropagation()}
       >
         {/* Loading State */}
-        {isLoading && !mystery && (
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-              <p className="text-gray-600 dark:text-gray-400">
-                Loading mystery details...
-              </p>
-            </div>
-          </div>
-        )}
+        {isLoading && !mystery && <MysteryModalSkeleton />}
 
         {/* Error State */}
         {error && !mystery && (
