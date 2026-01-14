@@ -34,9 +34,9 @@ Review the `.claude/` directory and project documentation for:
 ## Files to Review
 
 - `CLAUDE.md` - Main project instructions
-- `.claude/agents/*.md` - All agent definitions
+- `.claude/agents/*/[agent-name].md` - Agent definitions in subdirectories
+- `.claude/agents/*/SKILL.md` - Per-agent learnings files
 - `.claude/commands/*.md` - All command definitions
-- `.claude/agents/SKILL.md` - Accumulated learnings
 
 ## Output Format
 

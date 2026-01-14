@@ -33,7 +33,10 @@ Review the current conversation to identify:
 
 ## Output Format
 
-Append your findings to `.claude/agents/SKILL.md` using the Edit tool.
+Append your findings to the appropriate agent's SKILL.md using the Edit tool:
+- Frontend automation → `.claude/agents/frontend-dev/SKILL.md`
+- Backend automation → `.claude/agents/backend-dev/SKILL.md`
+- General workflow automation → `.claude/agents/automation-scout/SKILL.md`
 
 Format your additions as:
 

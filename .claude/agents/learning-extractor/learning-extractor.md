@@ -33,7 +33,10 @@ Review the current conversation to identify:
 
 ## Output Format
 
-After analyzing the session, append your findings to `.claude/agents/SKILL.md` using the Edit tool.
+After analyzing the session, append your findings to the appropriate agent's SKILL.md using the Edit tool:
+- Frontend work (Next.js, React, TypeScript) → `.claude/agents/frontend-dev/SKILL.md`
+- Backend work (Python, FastAPI, Neo4j) → `.claude/agents/backend-dev/SKILL.md`
+- UI/UX work → `.claude/agents/ui-ux-designer/SKILL.md`
 
 Format your additions as:
 
@@ -72,4 +75,5 @@ Format your additions as:
 - Include code examples when relevant
 - Focus on actionable insights
 - Skip sections if nothing relevant found
-- Don't duplicate existing content in SKILL.md
+- Don't duplicate existing content in the target SKILL.md
+- Choose the most relevant agent's SKILL.md based on the session content

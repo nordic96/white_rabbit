@@ -77,3 +77,108 @@ Playwright MCP is configured project-wide in `.mcp.json` for browser automation 
 - Responsive design validation
 - User interaction automation
 - Accessibility testing
+
+## Development Patterns
+
+### Next.js API Routes - Route Caching
+
+Next.js App Router caches GET routes by default for performance. When building real-time endpoints (health checks, status monitors), use the dynamic export to force re-evaluation on every request:
+
+```typescript
+// app/api/health/route.ts
+export const dynamic = 'force-dynamic';
+
+export async function GET(request: Request) {
+  // Endpoint logic here
+}
+```
+
+Without this, cached responses may be stale. Always use `force-dynamic` for endpoints that should reflect current state.
+
+### API Error Response Format
+
+The frontend fetchApi utility expects error responses to match a specific ErrorResponse type structure:
+
+```typescript
+{
+  error: string;      // Error type/category
+  message: string;    // Human-readable message
+  status_code: number; // HTTP status code
+}
+```
+
+API routes must return errors in this format for error handling to work correctly. Example:
+
+```typescript
+return Response.json(
+  {
+    error: 'SERVICE_UNAVAILABLE',
+    message: 'Backend service is unreachable',
+    status_code: 503,
+  },
+  { status: 503 }
+);
+```
+
+### Health Check Proxy Pattern
+
+Backend health checks should be proxied through Next.js API routes with timeout protection:
+
+```typescript
+export async function GET(request: Request) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+
+  try {
+    const response = await fetch('http://localhost:8000/health', {
+      signal: controller.signal,
+    });
+    const data = await response.json();
+    return Response.json(data);
+  } catch (error) {
+    return Response.json(
+      {
+        error: 'SERVICE_UNAVAILABLE',
+        message: 'Backend service is unreachable',
+        status_code: 503,
+      },
+      { status: 503 }
+    );
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+```
+
+### Status Monitoring Components
+
+Use a polling pattern with useEffect and setInterval for real-time status components:
+
+```typescript
+export function DBServerStatus() {
+  const [status, setStatus] = useState('checking');
+  const [lastCheck, setLastCheck] = useState<Date | null>(null);
+
+  useEffect(() => {
+    const checkStatus = async () => {
+      try {
+        const response = await fetch('/api/health');
+        const data = await response.json();
+        setStatus(response.ok ? 'online' : 'offline');
+      } catch {
+        setStatus('offline');
+      }
+      setLastCheck(new Date());
+    };
+
+    checkStatus();
+    const interval = setInterval(checkStatus, 30000); // Poll every 30s
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Component JSX here
+}
+```
+
+Configure polling intervals based on use case - health endpoints typically poll every 30-60 seconds to minimize overhead.
