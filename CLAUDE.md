@@ -52,13 +52,15 @@ Two Claude-powered workflows are configured:
 
 ## Custom Agents
 
-Three specialized agents are configured in `.claude/agents/`:
+Specialized agents are configured in `.claude/agents/` with subdirectory organization:
 
-| Agent | Purpose |
-|-------|---------|
-| **frontend-dev** | Next.js/React/TypeScript development, UI components, Tailwind CSS styling |
-| **backend-dev** | Python FastAPI development, Neo4J database operations, Cypher queries |
-| **ui-ux-designer** | Design consistency review, accessibility audits, visual hierarchy analysis |
+| Agent | Location | Purpose |
+|-------|----------|---------|
+| **frontend-dev** | `.claude/agents/frontend-dev/` | Next.js/React/TypeScript development, UI components, Tailwind CSS styling |
+| **backend-dev** | `.claude/agents/backend-dev/` | Python FastAPI development, Neo4J database operations, Cypher queries |
+| **ui-ux-designer** | `.claude/agents/ui-ux-designer/` | Design consistency review, accessibility audits, visual hierarchy analysis |
+
+Each agent has its own configuration file (`[agent-name].md`) and specialized guidelines (`SKILL.md`).
 
 All agents have access to Playwright MCP for browser automation and testing.
 
@@ -78,7 +80,65 @@ Playwright MCP is configured project-wide in `.mcp.json` for browser automation 
 - User interaction automation
 - Accessibility testing
 
+## API Endpoints
+
+### Global Search - `GET /api/search`
+
+Performs fulltext search across all indexed node types (Mystery, Location, TimePeriod, Category).
+
+**Query Parameters:**
+- `q` (string, required): Search query (1-200 characters)
+- `limit` (integer, optional): Maximum results to return, default: 10, max: 100
+
+**Example Request:**
+```
+GET /api/search?q=atlantis&limit=20
+```
+
+**Response:**
+```json
+{
+  "query": "atlantis",
+  "total": 2,
+  "results": [
+    {
+      "id": "mystery_001",
+      "type": "Mystery",
+      "text": "Lost City of Atlantis",
+      "score": 3.45
+    },
+    {
+      "id": "location_015",
+      "type": "Location",
+      "text": "Santorini",
+      "score": 2.12
+    }
+  ]
+}
+```
+
+Results are sorted by relevance score (highest first). Uses Neo4j fulltext index for efficient searching.
+
 ## Development Patterns
+
+### Neo4j Cypher Query Security
+
+Always use parameterized queries to prevent injection attacks. Never interpolate user input directly into Cypher strings.
+
+**Vulnerable (avoid):**
+```python
+# DO NOT DO THIS
+cypher_query = f'MATCH (n) WHERE n.name = "{user_input}" RETURN n'
+```
+
+**Secure (correct):**
+```python
+cypher_query = "MATCH (n) WHERE n.name = $name RETURN n"
+parameters = {"name": user_input}
+results = await execute_read_query(request, cypher_query, parameters)
+```
+
+All parameters are passed separately from the query string to prevent injection.
 
 ### Next.js API Routes - Route Caching
 
