@@ -1,6 +1,8 @@
+import { NodeType } from './graph';
+
 export interface SearchResultItem {
   id: string;
-  type: 'Mystery' | 'Location' | 'TimePeriod' | 'Category';
+  type: NodeType;
   text: string;
   score: number;
 }
