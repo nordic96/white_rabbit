@@ -14,6 +14,8 @@ import {
 } from '@/types';
 import { useMysteryStore } from '@/store/mysteryStore';
 import { useFilterStore } from '@/store';
+import TTSServerStatus from '../ServerStatus/TTSServerStatus';
+import DBServerStatus from '../ServerStatus/DBServerStatus';
 
 const NodeColorMap: Record<NodeType, string> = {
   Category: '#8BE9FD',
@@ -110,7 +112,11 @@ export default function GraphMap() {
   }
 
   return (
-    <div className="w-full h-screen border border-black">
+    <div className="w-full relative h-screen border border-black">
+      <div className={'absolute top-0 left-0 flex gap-1 z-50'}>
+        <TTSServerStatus />
+        <DBServerStatus />
+      </div>
       <InteractiveNvlWrapper
         nodes={nodes}
         rels={relationships}

@@ -16,7 +16,7 @@ Use the Task tool with `subagent_type: learning-extractor` to analyze this sessi
 - Debugging approaches that worked well
 - Performance insights gained
 
-The agent will append findings to `.claude/agents/SKILL.md`.
+The agent will append findings to the appropriate domain agent's SKILL.md (e.g., `frontend-dev/SKILL.md` or `backend-dev/SKILL.md`).
 
 ### 2. Automation Scout
 Use the Task tool with `subagent_type: automation-scout` to identify:
@@ -25,7 +25,7 @@ Use the Task tool with `subagent_type: automation-scout` to identify:
 - Patterns that warrant new agents
 - Workflow optimizations
 
-The agent will append findings to `.claude/agents/SKILL.md`.
+The agent will append findings to the appropriate agent's SKILL.md based on the automation domain.
 
 ### 3. Doc Updator
 Use the Task tool with `subagent_type: doc-updator` to suggest and apply updates to:

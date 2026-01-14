@@ -1,5 +1,5 @@
 import { API_URL } from '@/config';
-import { TTSHealthResponse } from '@/types';
+import { DBHealthResponse } from '@/types';
 import { fetchApi } from '@/utils';
 import { NextResponse } from 'next/server';
 
@@ -10,8 +10,8 @@ export async function GET(): Promise<NextResponse> {
   const timeoutId = setTimeout(() => controller.abort(), 5000);
 
   try {
-    const url = new URL(`${API_URL}/api/tts/health`);
-    const res = await fetchApi<TTSHealthResponse>(url, {
+    const url = new URL(`${API_URL}/health`);
+    const res = await fetchApi<DBHealthResponse>(url, {
       signal: controller.signal,
     });
 
@@ -19,7 +19,7 @@ export async function GET(): Promise<NextResponse> {
       return NextResponse.json(
         {
           error: 'NetworkError',
-          message: 'Failed to fetch TTS server health',
+          message: 'Failed to fetch database health',
           status_code: 500,
         },
         { status: 500 },
@@ -30,7 +30,7 @@ export async function GET(): Promise<NextResponse> {
     return NextResponse.json(
       {
         error: 'NetworkError',
-        message: 'Failed to fetch TTS server health',
+        message: 'Failed to fetch database health',
         status_code: 500,
       },
       { status: 500 },

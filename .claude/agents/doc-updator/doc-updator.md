@@ -36,8 +36,11 @@ The main project instructions file. Update with:
 - Command reference updates
 - Tool/agent additions
 
-### Secondary: `.claude/agents/SKILL.md`
-For agent-specific best practices that emerged.
+### Secondary: Agent-specific SKILL.md files
+For domain-specific best practices, update the appropriate agent's SKILL.md:
+- `.claude/agents/frontend-dev/SKILL.md` - Frontend patterns
+- `.claude/agents/backend-dev/SKILL.md` - Backend patterns
+- `.claude/agents/ui-ux-designer/SKILL.md` - Design patterns
 
 ## Update Guidelines
 
