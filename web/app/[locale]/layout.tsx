@@ -43,7 +43,7 @@ export default async function RootLayout({ children, params }: Props) {
       >
         <NextIntlClientProvider>
           <Header />
-          <main className={'flex flex-col min-h-screen dark:bg-dark-gray'}>
+          <main className={'flex flex-col min-h-screen bg-dark-gray'}>
             {children}
           </main>
           <Footer />
