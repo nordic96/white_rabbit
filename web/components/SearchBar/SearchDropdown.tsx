@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useEffect, useRef } from 'react';
 import {
   HiQuestionMarkCircle,
   HiLocationMarker,
@@ -56,6 +56,24 @@ export function SearchDropdown({
   onSelect,
   onHover,
 }: SearchDropdownProps) {
+  const listboxRef = useRef<HTMLDivElement>(null);
+
+  // Scroll active item into view when navigating with keyboard
+  useEffect(() => {
+    if (activeIndex >= 0 && listboxRef.current) {
+      const activeElement = listboxRef.current.querySelector(
+        `#search-result-${activeIndex}`,
+      ) as HTMLElement | null;
+
+      if (activeElement) {
+        activeElement.scrollIntoView({
+          block: 'nearest',
+          behavior: 'smooth',
+        });
+      }
+    }
+  }, [activeIndex]);
+
   // Group results by type
   const groupedResults = useMemo(() => {
     const groups: Record<string, SearchResultItem[]> = {};
@@ -143,6 +161,7 @@ export function SearchDropdown({
   return (
     <div
       id="search-results-listbox"
+      ref={listboxRef}
       className={cn(
         'absolute z-50 w-full mt-1',
         'bg-white dark:bg-dark-gray',

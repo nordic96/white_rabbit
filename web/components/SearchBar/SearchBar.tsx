@@ -24,6 +24,7 @@ export default function SearchBar() {
     selectCurrent,
     clear,
     closeDropdown,
+    selectSearchResult,
   } = useSearchStore();
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -45,13 +46,11 @@ export default function SearchBar() {
 
   const handleResultSelect = useCallback(
     (result: SearchResultItem) => {
-      // TODO: Implement navigation to the selected result based on result.type
-      // For now, just close the dropdown
-      void result;
+      selectSearchResult(result);
       closeDropdown();
       setQuery('');
     },
-    [closeDropdown, setQuery],
+    [closeDropdown, setQuery, selectSearchResult],
   );
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -91,7 +90,8 @@ export default function SearchBar() {
     }
   };
 
-  const showDropdown = isOpen && (results.length > 0 || isLoading || error);
+  const showDropdown = (isOpen &&
+    (results.length > 0 || isLoading || error)) as boolean;
 
   return (
     <div

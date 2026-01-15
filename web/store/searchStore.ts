@@ -1,9 +1,27 @@
+/* eslint-disable react-hooks/rules-of-hooks */
 import { SearchResponse, SearchResultItem } from '@/types';
 import { fetchApi } from '@/utils';
 import { create } from 'zustand';
+import { useMysteryStore } from './mysteryStore';
+import { useFilterStore } from './filterStore';
 
 const DEBOUNCE_MS = 300;
 const DEFAULT_RESULT_LIMIT = 20;
+const TYPE_ORDER = ['Mystery', 'Location', 'TimePeriod', 'Category'];
+
+/**
+ * Sort results by type to match display order in SearchDropdown.
+ * This ensures activeIndex refers to the same item in both store and display.
+ */
+function sortResultsByTypeOrder(
+  results: SearchResultItem[],
+): SearchResultItem[] {
+  return [...results].sort((a, b) => {
+    const aOrder = TYPE_ORDER.indexOf(a.type);
+    const bOrder = TYPE_ORDER.indexOf(b.type);
+    return aOrder - bOrder;
+  });
+}
 
 interface SearchState {
   query: string;
@@ -34,6 +52,7 @@ type SearchStore = SearchState & {
   clear: () => void;
   closeDropdown: () => void;
   reset: () => void;
+  selectSearchResult: (res: SearchResultItem) => void;
 };
 
 let debounceTimeout: NodeJS.Timeout | null = null;
@@ -41,7 +60,31 @@ let abortController: AbortController | null = null;
 
 export const useSearchStore = create<SearchStore>()((set, get) => ({
   ...initialState,
-
+  selectSearchResult: (res: SearchResultItem) => {
+    const { id, type } = res;
+    const setFilter = useFilterStore.getState().setFilter;
+    switch (type) {
+      case 'Mystery': {
+        useMysteryStore.getState().setSelectedId(id);
+        break;
+      }
+      case 'Category': {
+        setFilter(id);
+        break;
+      }
+      case 'Location': {
+        setFilter(id);
+        break;
+      }
+      case 'TimePeriod': {
+        setFilter(id);
+        break;
+      }
+      default: {
+        return;
+      }
+    }
+  },
   setQuery: (query: string) => {
     set({ query });
 
@@ -93,7 +136,7 @@ export const useSearchStore = create<SearchStore>()((set, get) => ({
 
       if (result.ok) {
         set({
-          results: result.data.results,
+          results: sortResultsByTypeOrder(result.data.results),
           isOpen: true,
           activeIndex: -1,
           isLoading: false,
