@@ -1,86 +1,57 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback, KeyboardEvent } from 'react';
+import { useRef, useCallback, KeyboardEvent } from 'react';
 import { HiSearch, HiX } from 'react-icons/hi';
-import { SearchResponse, SearchResultItem } from '@/types';
+import { SearchResultItem } from '@/types';
 import { cn } from '@/utils';
+import { useSearchStore } from '@/store';
+import useClickOutside from '@/hooks/useClickOutside';
 import { SearchDropdown } from './SearchDropdown';
 
-const DEBOUNCE_MS = 300;
-
 export default function SearchBar() {
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState<SearchResultItem[]>([]);
-  const [isOpen, setIsOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [activeIndex, setActiveIndex] = useState(-1);
+  const {
+    query,
+    results,
+    isLoading,
+    error,
+    isOpen,
+    activeIndex,
+    setQuery,
+    setIsOpen,
+    setActiveIndex,
+    navigateNext,
+    navigatePrev,
+    selectCurrent,
+    clear,
+    closeDropdown,
+  } = useSearchStore();
 
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  const fetchResults = useCallback(async (searchQuery: string) => {
-    if (!searchQuery.trim()) {
-      setResults([]);
-      setIsOpen(false);
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const res = await fetch(
-        `/api/search?q=${encodeURIComponent(searchQuery)}&limit=20`,
-      );
-      if (!res.ok) {
-        throw new Error('Search failed');
-      }
-      const data: SearchResponse = await res.json();
-      setResults(data.results);
-      setIsOpen(true);
-      setActiveIndex(-1);
-    } catch {
-      setError('Failed to search. Please try again.');
-      setResults([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  // Handle click outside to close dropdown
+  useClickOutside(containerRef, () => {
+    closeDropdown();
+  });
 
   const handleInputChange = (value: string) => {
     setQuery(value);
-
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-    }
-
-    if (!value.trim()) {
-      setResults([]);
-      setIsOpen(false);
-      return;
-    }
-
-    debounceRef.current = setTimeout(() => {
-      fetchResults(value);
-    }, DEBOUNCE_MS);
   };
 
-  const handleClear = () => {
-    setQuery('');
-    setResults([]);
-    setIsOpen(false);
-    setActiveIndex(-1);
+  const handleClear = useCallback(() => {
+    clear();
     inputRef.current?.focus();
-  };
+  }, [clear]);
 
-  const handleResultSelect = (result: SearchResultItem) => {
-    // TODO: Navigate to the selected result
-    console.log('Selected:', result);
-    setIsOpen(false);
-    setQuery('');
-  };
+  const handleResultSelect = useCallback(
+    (result: SearchResultItem) => {
+      // TODO: Navigate to the selected result
+      console.log('Selected:', result);
+      closeDropdown();
+      setQuery('');
+    },
+    [closeDropdown, setQuery],
+  );
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (!isOpen || results.length === 0) {
@@ -93,50 +64,31 @@ export default function SearchBar() {
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
-        setActiveIndex((prev) => (prev < results.length - 1 ? prev + 1 : 0));
+        navigateNext();
         break;
       case 'ArrowUp':
         e.preventDefault();
-        setActiveIndex((prev) => (prev > 0 ? prev - 1 : results.length - 1));
+        navigatePrev();
         break;
       case 'Enter':
         e.preventDefault();
-        if (activeIndex >= 0 && activeIndex < results.length) {
-          handleResultSelect(results[activeIndex]);
+        const selected = selectCurrent();
+        if (selected) {
+          handleResultSelect(selected);
         }
         break;
       case 'Escape':
         e.preventDefault();
-        setIsOpen(false);
-        setActiveIndex(-1);
+        closeDropdown();
         break;
     }
   };
 
-  // Click outside to close
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-        setActiveIndex(-1);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  // Cleanup debounce on unmount
-  useEffect(() => {
-    return () => {
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current);
-      }
-    };
-  }, []);
+  const handleFocus = () => {
+    if (query.trim() && results.length > 0) {
+      setIsOpen(true);
+    }
+  };
 
   const showDropdown = isOpen && (results.length > 0 || isLoading || error);
 
@@ -171,7 +123,7 @@ export default function SearchBar() {
           value={query}
           onChange={(e) => handleInputChange(e.target.value)}
           onKeyDown={handleKeyDown}
-          onFocus={() => query.trim() && results.length > 0 && setIsOpen(true)}
+          onFocus={handleFocus}
           placeholder="Search mysteries, locations, time periods..."
           className={cn(
             'w-full py-2 pl-10 pr-10 text-sm',
