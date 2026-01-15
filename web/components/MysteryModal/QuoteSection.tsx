@@ -96,6 +96,9 @@ export default function QuoteSection({
       if (!mountedRef.current || !url) return;
 
       const newAudio = new Audio(url);
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
       audioRef.current = newAudio;
 
       newAudio.addEventListener('canplaythrough', handleCanPlay);
