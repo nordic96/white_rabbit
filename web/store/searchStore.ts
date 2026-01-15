@@ -3,6 +3,7 @@ import { fetchApi } from '@/utils';
 import { create } from 'zustand';
 
 const DEBOUNCE_MS = 300;
+const DEFAULT_RESULT_LIMIT = 20;
 
 interface SearchState {
   query: string;
@@ -36,6 +37,7 @@ type SearchStore = SearchState & {
 };
 
 let debounceTimeout: NodeJS.Timeout | null = null;
+let abortController: AbortController | null = null;
 
 export const useSearchStore = create<SearchStore>()((set, get) => ({
   ...initialState,
@@ -48,7 +50,12 @@ export const useSearchStore = create<SearchStore>()((set, get) => ({
     }
 
     if (!query.trim()) {
-      set({ results: [], isOpen: false, error: null });
+      // Cancel any in-flight request when query is cleared
+      if (abortController) {
+        abortController.abort();
+        abortController = null;
+      }
+      set({ results: [], isOpen: false, error: null, isLoading: false });
       return;
     }
 
@@ -63,26 +70,52 @@ export const useSearchStore = create<SearchStore>()((set, get) => ({
       return;
     }
 
+    // Cancel previous in-flight request to prevent race conditions
+    if (abortController) {
+      abortController.abort();
+    }
+
+    abortController = new AbortController();
+    const currentController = abortController;
+
     set({ isLoading: true, error: null });
 
-    const result = await fetchApi<SearchResponse>(
-      `/api/search?q=${encodeURIComponent(query)}&limit=20`,
-    );
+    try {
+      const result = await fetchApi<SearchResponse>(
+        `/api/search?q=${encodeURIComponent(query)}&limit=${DEFAULT_RESULT_LIMIT}`,
+        { signal: currentController.signal },
+      );
 
-    if (result.ok) {
-      set({
-        results: result.data.results,
-        isOpen: true,
-        activeIndex: -1,
-        isLoading: false,
-      });
-    } else {
+      // Check if this request was aborted (a newer request superseded it)
+      if (currentController.signal.aborted) {
+        return;
+      }
+
+      if (result.ok) {
+        set({
+          results: result.data.results,
+          isOpen: true,
+          activeIndex: -1,
+          isLoading: false,
+        });
+      } else {
+        set({
+          error: result.error.message || 'Failed to search. Please try again.',
+          results: [],
+          isLoading: false,
+        });
+      }
+    } catch (error) {
+      // Ignore abort errors - they're expected when cancelling requests
+      if (error instanceof Error && error.name === 'AbortError') {
+        return;
+      }
+
       set({
         error: 'Failed to search. Please try again.',
         results: [],
         isLoading: false,
       });
-      console.error('Search failed:', result.error);
     }
   },
 
@@ -124,6 +157,10 @@ export const useSearchStore = create<SearchStore>()((set, get) => ({
     if (debounceTimeout) {
       clearTimeout(debounceTimeout);
     }
+    if (abortController) {
+      abortController.abort();
+      abortController = null;
+    }
     set({ ...initialState });
   },
 
@@ -134,6 +171,10 @@ export const useSearchStore = create<SearchStore>()((set, get) => ({
   reset: () => {
     if (debounceTimeout) {
       clearTimeout(debounceTimeout);
+    }
+    if (abortController) {
+      abortController.abort();
+      abortController = null;
     }
     set(initialState);
   },

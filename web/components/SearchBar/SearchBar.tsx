@@ -45,8 +45,9 @@ export default function SearchBar() {
 
   const handleResultSelect = useCallback(
     (result: SearchResultItem) => {
-      // TODO: Navigate to the selected result
-      console.log('Selected:', result);
+      // TODO: Implement navigation to the selected result based on result.type
+      // For now, just close the dropdown
+      void result;
       closeDropdown();
       setQuery('');
     },
