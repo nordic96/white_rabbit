@@ -44,6 +44,26 @@ TypeScript is configured with `@/*` mapping to the project root for imports.
 - Create feature branches from `develop`
 - PRs to `develop` trigger automated Claude code review
 
+### Branch Naming Convention
+
+Use one of these formats for feature branches:
+- `issue_[number]` - For issues (e.g., `issue_42`)
+- `dev_[feature]` - For general development (e.g., `dev_search_refinement`)
+
+**Important:** Avoid using the `#` character in branch names (not all systems support it).
+
+### PR Review Workflow
+
+When reviewing PRs locally:
+```bash
+gh pr view [number] --comments  # Read all PR comments including reviews
+```
+
+When addressing review comments, prioritize:
+1. Critical priority issues first
+2. High priority issues second
+3. Suggestions and improvements last
+
 ## GitHub Actions
 
 Two Claude-powered workflows are configured:
@@ -120,6 +140,170 @@ GET /api/search?q=atlantis&limit=20
 Results are sorted by relevance score (highest first). Uses Neo4j fulltext index for efficient searching.
 
 ## Development Patterns
+
+### API Route Query Parameter Validation
+
+All API routes that accept query parameters must validate them before processing:
+
+```typescript
+// app/api/search/route.ts
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const query = searchParams.get('q');
+  const limitParam = searchParams.get('limit');
+
+  // Validate required parameters
+  if (!query || query.length === 0) {
+    return Response.json(
+      {
+        error: 'INVALID_QUERY',
+        message: 'Query parameter is required and must not be empty',
+        status_code: 400,
+      },
+      { status: 400 }
+    );
+  }
+
+  // Validate parameter length constraints
+  if (query.length > 200) {
+    return Response.json(
+      {
+        error: 'QUERY_TOO_LONG',
+        message: 'Query must be 200 characters or less',
+        status_code: 400,
+      },
+      { status: 400 }
+    );
+  }
+
+  // Validate numeric parameters
+  let limit = 10;
+  if (limitParam) {
+    const parsedLimit = parseInt(limitParam, 10);
+    if (isNaN(parsedLimit) || parsedLimit < 1 || parsedLimit > 100) {
+      return Response.json(
+        {
+          error: 'INVALID_LIMIT',
+          message: 'Limit must be a number between 1 and 100',
+          status_code: 400,
+        },
+        { status: 400 }
+      );
+    }
+    limit = parsedLimit;
+  }
+
+  // Process validated parameters
+}
+```
+
+Always propagate error responses with the standard ErrorResponse format for consistency with frontend error handling.
+
+### API Route Timeout Protection
+
+Use AbortController with setTimeout for backend calls to prevent hanging requests:
+
+```typescript
+export async function GET(request: Request) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+
+  try {
+    const response = await fetch('http://localhost:8000/endpoint', {
+      signal: controller.signal,
+    });
+    // Handle response
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      return Response.json(
+        {
+          error: 'REQUEST_TIMEOUT',
+          message: 'Backend service request timed out',
+          status_code: 504,
+        },
+        { status: 504 }
+      );
+    }
+    // Handle other errors
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+```
+
+### Frontend State Management with Zustand
+
+Use Zustand stores for client-side state that interacts with the API. Implement AbortController for race condition prevention:
+
+```typescript
+import { create } from 'zustand';
+
+interface SearchStore {
+  results: SearchResult[];
+  isLoading: boolean;
+  error: string | null;
+  abortController: AbortController | null;
+  search: (query: string) => Promise<void>;
+  reset: () => void;
+}
+
+export const useSearchStore = create<SearchStore>((set) => ({
+  results: [],
+  isLoading: false,
+  error: null,
+  abortController: null,
+
+  search: async (query: string) => {
+    set({ isLoading: true, error: null });
+
+    // Cancel previous request if it's still in flight
+    const prevController = useSearchStore.getState().abortController;
+    if (prevController) {
+      prevController.abort();
+    }
+
+    const controller = new AbortController();
+    set({ abortController: controller });
+
+    try {
+      const response = await fetchApi<SearchResponse>('/api/search', {
+        query_params: { q: query, limit: 20 },
+        signal: controller.signal,
+      });
+
+      set({ results: response.results, error: null });
+    } catch (error) {
+      if (error instanceof Error && error.name !== 'AbortError') {
+        set({ error: error.message });
+      }
+    } finally {
+      set({ isLoading: false, abortController: null });
+    }
+  },
+
+  reset: () => {
+    set({
+      results: [],
+      isLoading: false,
+      error: null,
+      abortController: null,
+    });
+  },
+}));
+```
+
+**Key patterns:**
+- Cancel previous requests before starting new ones to prevent stale updates
+- Use fetchApi with type generics for type-safe API calls
+- Clean up AbortController in finally block
+- Propagate API error responses to store state
+
+### Reusing Existing Hooks
+
+Prefer existing custom hooks over manual event listener implementation:
+- Use `useClickOutside` for closing modals/dropdowns instead of manually adding document click listeners
+- Check existing hooks in `app/hooks/` before creating new ones
+- Document hook behavior in their JSDoc comments
 
 ### Neo4j Cypher Query Security
 

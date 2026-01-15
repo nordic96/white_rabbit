@@ -526,7 +526,112 @@ Use this checklist to self-review before submitting:
 
 ---
 
-**Document Version:** 2.0
+---
+
+## Session Learnings - 2026-01-15 (Part 2 - Search API & PR Reviews)
+
+### Mistakes & Fixes
+
+- **Issue:** Search API endpoint missing query parameter validation
+  - **Root Cause:** No validation on input length or limits before passing to database
+  - **Fix:** Added Pydantic validation for query parameter (minimum 1 character, maximum 200 characters)
+  - **Prevention:** Always validate user input with type checking and length constraints before using in queries
+
+- **Issue:** Search API not handling timeout errors appropriately
+  - **Root Cause:** Generic 500 response without distinguishing timeout (504) from network errors (503)
+  - **Fix:** Added specific HTTP status code handling for timeout scenarios (504) and network unavailability (503)
+  - **Prevention:** Map specific exception types to appropriate HTTP status codes for better client error handling
+
+- **Issue:** Search API returning generic error objects instead of structured error responses
+  - **Root Cause:** Inconsistent error response format across endpoints
+  - **Fix:** Ensured all error responses include `error`, `message`, and `status_code` fields matching frontend expectations
+  - **Prevention:** Define error response schema once and reuse across all endpoints
+
+- **Issue:** Limit parameter not validated in search endpoint
+  - **Root Cause:** User could request millions of results causing memory issues
+  - **Fix:** Added validation that limit parameter is between 1 and 100
+  - **Prevention:** Validate all query parameters with reasonable bounds
+
+### Patterns Discovered
+
+- **Pattern:** Structured Error Response Handling in FastAPI
+  - **Context:** Providing consistent error information to frontend error handling logic
+  - **Implementation:**
+    ```python
+    # Define consistent error response structure
+    return JSONResponse(
+      status_code=503,
+      content={
+        "error": "ServiceUnavailable",
+        "message": "Search service temporarily unavailable",
+        "status_code": 503
+      }
+    )
+    ```
+  - **Key Detail:** Frontend's fetchApi utility specifically expects this three-field structure; missing any field causes type mismatches
+
+- **Pattern:** HTTP Status Code Mapping for Database Scenarios
+  - **Context:** Differentiating between different failure modes to guide client retry logic
+  - **Implementation:**
+    - `504 Gateway Timeout`: Request timed out waiting for database response
+    - `503 Service Unavailable`: Database connection/network error (backend unavailable)
+    - `400 Bad Request`: Query validation failed (invalid parameters)
+    - `422 Unprocessable Entity`: Malformed request body
+  - **Key Detail:** Client can make better decisions about retrying (503, 504) vs. fixing request (400, 422)
+
+- **Pattern:** Input Validation with Pydantic Query Parameters
+  - **Context:** Protecting database from malformed or excessive requests
+  - **Implementation:**
+    ```python
+    from pydantic import BaseModel, Field
+
+    class SearchQuery(BaseModel):
+        q: str = Field(min_length=1, max_length=200)
+        limit: int = Field(ge=1, le=100, default=10)
+    ```
+  - **Key Detail:** Pydantic automatically returns 422 with validation errors, no manual checking needed
+
+### Debugging Wins
+
+- **Problem:** Search endpoint returning different error formats in PR review
+  - **Approach:** Examined fetchApi type definitions and ErrorResponse interface to understand expected structure
+  - **Tool/Technique:** Reviewed TypeScript types in frontend code to identify what backend must provide
+
+- **Problem:** Race condition where multiple search requests complete out of order
+  - **Approach:** Analyzed client-side request handling and identified that server wasn't distinguishing requests
+  - **Tool/Technique:** Worked with frontend team to implement AbortController on client, confirmed backend properly handles request cancellation
+
+### Performance Notes
+
+- Query length validation (max 200 chars) prevents excessively complex Cypher query compilation
+- Result limit validation (max 100) prevents memory bloat from large result sets
+- Timeout handling with AbortController on frontend prevents server from processing abandoned requests
+- Structured error responses add minimal overhead while significantly improving debuggability
+
+---
+
+## Git Workflow & Project Standards
+
+### Branch Naming Convention
+
+**Updated naming standard (replaces #27 with issue_27 format):**
+
+- Feature branches: `issue_[number]` for work on specific issues
+- Development branches: `dev_[feature_name]` for feature development
+- Previous format `issue_#[number]` should not be used going forward
+
+Example:
+```bash
+# Create branch for issue #27
+git checkout -b issue_27
+
+# Create branch for new feature
+git checkout -b dev_search_optimization
+```
+
+---
+
+**Document Version:** 2.1
 **Last Updated:** 2026-01-15
-**Source:** Global Search Implementation (Issue #28) + PR #14 Code Review Feedback
+**Source:** Global Search Implementation (Issue #28) + PR #14 Code Review + PR #42 Search API Review + PR #43 Critical Issues Fixes
 **Maintainer:** Claude Code Backend Agent

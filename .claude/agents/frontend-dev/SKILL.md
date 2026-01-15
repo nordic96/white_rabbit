@@ -241,6 +241,70 @@ const [dbStatus, setDbStatus] = useState<DBStatus>('unknown');
 
 ---
 
-**Document Version:** 2.0
+---
+
+## Session Learnings - 2026-01-15 (Part 2)
+
+### Mistakes & Fixes
+
+- **Issue:** Console.log statements left in production code during SearchBar refactoring
+  - **Root Cause:** Debug logging not removed before final submission
+  - **Fix:** Removed all console.log statements and replaced with proper error handling
+  - **Prevention:** Use search/replace to find and remove all console.log before finalizing code
+
+- **Issue:** SearchBar component relying on manual event listeners for click-outside detection
+  - **Root Cause:** Not leveraging existing utility hooks available in codebase
+  - **Fix:** Replaced manual event listener setup with `useClickOutside` hook
+  - **Prevention:** Audit codebase for existing utilities before implementing custom solutions
+
+### Patterns Discovered
+
+- **Pattern:** Zustand Store with Abort Controller for Search State Management
+  - **Context:** Managing global search state with automatic cancellation of in-flight requests
+  - **Implementation:**
+    ```typescript
+    // searchStore.ts
+    const searchStore = create((set) => ({
+      query: '',
+      results: [],
+      abortController: null as AbortController | null,
+      setQuery: (query) => set({ query }),
+      abortPreviousRequest: () => {
+        // Cancel in-flight request if new search initiated
+        get().abortController?.abort();
+      },
+    }));
+    ```
+  - **Key Detail:** Store the AbortController instance and call abort() when initiating new searches to prevent race conditions where results arrive out of order
+
+- **Pattern:** Type-Safe API Calls with Generics
+  - **Context:** Reusable fetch utility that works with different response types
+  - **Implementation:** `fetchApi<SearchResponse>('/api/search?q=...')` provides type safety for response data
+  - **Key Detail:** Generic type parameter allows components to specify expected response shape without type casting
+
+- **Pattern:** Centralized Search State with Zustand
+  - **Context:** Multiple components need to access/update search state (SearchBar, Results panel)
+  - **Implementation:** Store query, results, and loading state in zustand, components subscribe via custom hooks
+  - **Key Detail:** Decouples components from each other - SearchBar updates query, Results component automatically updates on subscription
+
+### Debugging Wins
+
+- **Problem:** SearchBar component clearing results unexpectedly
+  - **Approach:** Traced state updates through zustand store to identify when clearResults was being called
+  - **Tool/Technique:** Added console logging temporarily to track store subscription updates
+
+- **Problem:** Race condition in search requests (older results appearing after newer ones)
+  - **Approach:** Identified that rapid successive searches weren't cancelling previous in-flight requests
+  - **Tool/Technique:** Used browser Network tab to observe multiple simultaneous requests and AbortController to cancel outdated ones
+
+### Performance Notes
+
+- AbortController prevents wasted processing on cancelled requests and network bandwidth
+- Zustand is lightweight compared to Redux for this use case (single search state object)
+- Consider debouncing search input to reduce number of API calls
+
+---
+
+**Document Version:** 2.1
 **Last Updated:** 2026-01-15
-**Source:** Health Check Implementation + Global Search Session
+**Source:** Health Check Implementation + Global Search Session + SearchBar Refactoring (Issue #27)
