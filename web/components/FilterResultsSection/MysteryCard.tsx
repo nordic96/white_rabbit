@@ -38,12 +38,12 @@ export default function MysteryCard({ item }: MysteryCardProps) {
         'bg-dark-secondary',
         'border',
         'hover:border-mystery-purple',
-        'hover:shadow-lg hover:shadow-blue-500/10 dark:hover:shadow-black/20',
+        'hover:shadow-lg hover:shadow-black/20',
         'hover:-translate-y-0.5',
         'focus:outline-none focus:ring-1 focus:ring-mystery-purple focus:ring-offset-1 focus:ring-offset-mystery-purple',
       )}
     >
-      <div className="relative w-20 h-20 shrink-0 rounded-md overflow-hidden bg-gray-100 dark:bg-dark-gray">
+      <div className="relative w-20 h-20 shrink-0 rounded-md overflow-hidden bg-dark-gray">
         {hasImage ? (
           <Image
             src={image_source[0]}
@@ -54,7 +54,7 @@ export default function MysteryCard({ item }: MysteryCardProps) {
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <HiQuestionMarkCircle className="w-8 h-8 text-gray-400 dark:text-gray-500" />
+            <HiQuestionMarkCircle className="w-8 h-8 text-gray-500" />
           </div>
         )}
       </div>

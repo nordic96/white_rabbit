@@ -46,12 +46,12 @@ export default function DBServerStatus() {
     <div>
       <div
         className={
-          'flex items-center gap-1 bg-dark-secondary rounded-lg px-1 py-0.5 text-white text-sm justify-between'
+          'flex items-center gap-1 bg-dark-secondary rounded-lg px-1 py-0.5 text-white text-sm max-sm:text-xs justify-between'
         }
       >
-        <span>Database Server Status:</span>
+        <span>Database Server:</span>
         <div
-          className={cn('w-3 h-3 rounded-full shadow-lg', {
+          className={cn('w-2 h-2 rounded-full shadow-lg', {
             'bg-green-400': dbStatus === 'healthy',
             'bg-yellow-400': dbStatus === 'unknown',
             'bg-red-400': dbStatus === 'unhealthy',

@@ -16,12 +16,13 @@ import { useMysteryStore } from '@/store/mysteryStore';
 import { useFilterStore } from '@/store';
 import TTSServerStatus from '../ServerStatus/TTSServerStatus';
 import DBServerStatus from '../ServerStatus/DBServerStatus';
+import GraphLegend from './GraphLegend';
 
 const NodeColorMap: Record<NodeType, string> = {
   Category: '#fedf66',
-  Location: '#FF79C6',
-  Mystery: '#7f00ff',
-  TimePeriod: '#8BE9FD',
+  Location: '#ff79c6',
+  Mystery: '#4142f3',
+  TimePeriod: '#8be9fd',
 };
 
 export default function GraphMap() {
@@ -113,9 +114,10 @@ export default function GraphMap() {
 
   return (
     <div className="w-full relative h-screen border border-black">
-      <div className={'absolute top-0 left-0 flex gap-1 z-50'}>
+      <div className={'absolute flex flex-col top-0 left-0 gap-1 z-49'}>
         <TTSServerStatus />
         <DBServerStatus />
+        <GraphLegend />
       </div>
       <InteractiveNvlWrapper
         nodes={nodes}

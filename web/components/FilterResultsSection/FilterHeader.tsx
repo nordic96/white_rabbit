@@ -40,7 +40,7 @@ export default function FilterHeader({
         <button
           type="button"
           onClick={onClose}
-          className="p-1.5 rounded-lg text-dark-secondary hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-dark-secondary transition-colors"
+          className="p-1.5 rounded-lg text-dark-secondary hover:text-gray-200 hover:bg-dark-secondary transition-colors"
           aria-label="Close panel"
         >
           <HiX className="w-5 h-5" />

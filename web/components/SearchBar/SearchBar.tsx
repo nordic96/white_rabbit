@@ -96,7 +96,7 @@ export default function SearchBar() {
   return (
     <div
       ref={containerRef}
-      className="relative w-full max-w-md"
+      className="relative w-full"
       role="combobox"
       aria-controls="search-results-listbox"
       aria-expanded={showDropdown}
@@ -109,9 +109,7 @@ export default function SearchBar() {
           <HiSearch
             className={cn(
               'w-5 h-5 transition-colors',
-              isLoading
-                ? 'text-blue-500 animate-pulse'
-                : 'text-gray-400 dark:text-gray-500',
+              isLoading ? 'text-blue-500 animate-pulse' : 'text-gray-500',
             )}
             aria-hidden="true"
           />
@@ -127,12 +125,12 @@ export default function SearchBar() {
           onFocus={handleFocus}
           placeholder="Search mysteries, locations, time periods..."
           className={cn(
-            'w-full py-1 pl-10 pr-10 text-sm',
-            'bg-white dark:bg-dark-gray',
-            'border border-gray-300 dark:border-gray-600',
+            'w-full py-2 sm:py-1 pl-10 pr-10 text-sm max-sm:text-xs',
+            'bg-dark-gray',
+            'border border-gray-600',
             'rounded-full',
-            'text-gray-900 dark:text-gray-100',
-            'placeholder-gray-500 dark:placeholder-gray-400',
+            'text-gray-100',
+            'placeholder-gray-400',
             'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
             'transition-all',
           )}
@@ -152,8 +150,8 @@ export default function SearchBar() {
             onClick={handleClear}
             className={cn(
               'absolute inset-y-0 right-0 flex items-center pr-3',
-              'text-gray-400 dark:text-gray-500',
-              'hover:text-gray-600 dark:hover:text-gray-300',
+              'text-gray-500',
+              'hover:text-gray-300',
               'transition-colors',
             )}
             aria-label="Clear search"

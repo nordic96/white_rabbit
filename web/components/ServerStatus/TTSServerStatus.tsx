@@ -43,12 +43,12 @@ export default function TTSServerStatus() {
     <div>
       <div
         className={
-          'flex items-center gap-1 bg-dark-secondary rounded-lg px-1 py-0.5 text-white text-sm justify-between'
+          'flex items-center gap-1 bg-dark-secondary rounded-lg px-1 py-0.5 text-white text-sm max-sm:text-xs justify-between'
         }
       >
-        <span>TTS Audio Server Status:</span>
+        <span>Audio Server:</span>
         <div
-          className={cn('w-3 h-3 rounded-full shadow-lg', {
+          className={cn('w-2 h-2 rounded-full shadow-lg', {
             'bg-green-400': ttsStatus === 'ready',
             'bg-yellow-400': ttsStatus === 'warmed_up',
             'bg-red-400': ttsStatus === 'not_loaded',

@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/rules-of-hooks */
 import { SearchResponse, SearchResultItem } from '@/types';
 import { fetchApi } from '@/utils';
 import { create } from 'zustand';

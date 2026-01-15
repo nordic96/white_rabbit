@@ -29,7 +29,7 @@ export default function RightSidePanel() {
       aria-hidden={filterId === null}
       className={cn(
         'absolute right-0 top-0 h-full transition-all duration-300 ease-out',
-        'w-90 shadow-2xl shadow-black/20 dark:shadow-black/50',
+        'w-90 max-sm:w-full shadow-2xl shadow-black/50 z-49',
         filterId === null
           ? 'translate-x-full opacity-0'
           : 'translate-x-0 opacity-100',
