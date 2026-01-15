@@ -99,7 +99,7 @@ export default function QuoteSection({
   }
 
   return (
-    <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-dark-blue via-dark-blue to-light-blue via-80% p-3 shadow-lg">
+    <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-dark-blue via-light-blue to-mystery-purple via-60% p-3 shadow-lg">
       {/* Subtle background pattern */}
       <div className="absolute inset-0 opacity-5">
         <div

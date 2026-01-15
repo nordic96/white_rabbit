@@ -20,7 +20,7 @@ export default function ThumbnailRow({
   }
 
   return (
-    <div className="flex gap-1 p-1 bg-gray-100 dark:bg-dark-secondary overflow-x-auto">
+    <div className="flex gap-1 p-1 bg-dark-secondary overflow-x-auto">
       {images.map((url, index) => (
         <button
           key={url}
@@ -29,8 +29,8 @@ export default function ThumbnailRow({
           className={cn(
             'relative shrink-0 w-14 h-14 rounded overflow-hidden border-2 transition-all',
             index === activeIndex
-              ? 'border-blue-500 ring-2 ring-blue-500/50 scale-105'
-              : 'border-transparent hover:border-gray-300 dark:hover:border-gray-600',
+              ? 'border-mystery-purple ring-0.5 ring-mystery-purple scale-105'
+              : 'border-transparent hover:border-gray-600',
           )}
           aria-label={`View image ${index + 1}`}
           aria-pressed={index === activeIndex}
