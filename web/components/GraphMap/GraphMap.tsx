@@ -114,7 +114,7 @@ export default function GraphMap() {
 
   return (
     <div className="w-full relative h-screen border border-black">
-      <div className={'absolute flex flex-col top-0 left-0 gap-1 z-49'}>
+      <div className={'absolute flex flex-col top-0 left-0 gap-1 z-40'}>
         <TTSServerStatus />
         <DBServerStatus />
         <GraphLegend />

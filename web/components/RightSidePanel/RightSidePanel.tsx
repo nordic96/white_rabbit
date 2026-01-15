@@ -29,13 +29,13 @@ export default function RightSidePanel() {
       aria-hidden={filterId === null}
       className={cn(
         'absolute right-0 top-0 h-full transition-all duration-300 ease-out',
-        'w-90 max-sm:w-full shadow-2xl shadow-black/50 z-49',
+        'w-90 max-sm:w-full shadow-2xl shadow-black/50 z-40',
         filterId === null
           ? 'translate-x-full opacity-0'
           : 'translate-x-0 opacity-100',
       )}
     >
-      <div className={'absolute bg-dark-gray opacity-70 inset-0 z-49'}></div>
+      <div className={'absolute bg-dark-gray opacity-70 inset-0 z-40'}></div>
       <div className={'z-50 absolute inset-0'}>
         <FilterResultsSection />
       </div>
