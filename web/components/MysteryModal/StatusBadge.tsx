@@ -63,7 +63,7 @@ export default function StatusBadge({
   return (
     <span
       className={cn(
-        'inline-flex items-center p-1.5 rounded-full text-xs font-medium',
+        'inline-flex items-center p-1.5 max-sm:p-1 rounded-full text-xs font-medium',
         colorClasses,
       )}
     >

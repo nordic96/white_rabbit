@@ -24,7 +24,7 @@ export default function MysteryModalSkeleton() {
         </div>
 
         {/* Right Column - Metadata Skeleton */}
-        <div className="relative bg-dark-secondary/50 p-6 lg:p-8 space-y-6 overflow-y-auto max-h-[60vh] lg:max-h-none">
+        <div className="relative bg-dark-secondary/50 p-6 max-sm:p-3 lg:p-8 space-y-6 overflow-y-auto max-h-[60vh] lg:max-h-none">
           {/* Close Button Skeleton */}
           <div className="absolute top-4 right-4 lg:top-6 lg:right-6">
             <div className="w-8 h-8 rounded-full bg-dark-gray" />

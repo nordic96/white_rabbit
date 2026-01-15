@@ -30,7 +30,7 @@ export default function HeroMetadata({
   onClose,
 }: HeroMetadataProps): React.ReactElement {
   return (
-    <div className="relative flex flex-col justify-center bg-dark-secondary/50 p-6 lg:p-8">
+    <div className="relative flex flex-col justify-center bg-dark-secondary/50 p-6 lg:p-8 max-sm:p-2">
       {/* Close button in top right */}
       <button
         type="button"
@@ -42,7 +42,7 @@ export default function HeroMetadata({
       </button>
 
       {/* Content */}
-      <div className="space-y-4 pr-12">
+      <div className="space-y-4 lg:pr-12">
         <h2
           id="mystery-modal-title"
           className="text-2xl lg:text-5xl font-extrabold text-gray-100"

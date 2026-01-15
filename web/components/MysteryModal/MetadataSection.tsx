@@ -1,7 +1,7 @@
 import { HiLocationMarker, HiClock, HiTag } from 'react-icons/hi';
 import type { IconType } from 'react-icons';
 import { LocationNode, TimePeriodNode, CategoryNode } from '@/types/mystery';
-import { wrapAdBc } from '@/utils';
+import { cn, wrapAdBc } from '@/utils';
 
 interface MetadataSectionProps {
   locations: LocationNode[];
@@ -21,9 +21,7 @@ function SectionHeader({
   return (
     <div className="flex items-center mb-3">
       <Icon className="w-4 h-4 mr-2 text-gray-400" />
-      <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-        {title}
-      </h4>
+      <h4 className="text-xs font-semibold text-gray-400 uppercase">{title}</h4>
     </div>
   );
 }
@@ -39,8 +37,10 @@ export default function MetadataSection({
   timePeriods,
   categories,
 }: MetadataSectionProps): React.ReactElement {
+  const baseLabelStyle =
+    'inline-flex items-center px-2 py-1.5 max-sm:py-1 rounded-lg border';
   return (
-    <div className="grid grid-cols-3 gap-4">
+    <div className="grid grid-cols-3 gap-4 text-sm max-sm:text-xs">
       {locations.length > 0 && (
         <div>
           <SectionHeader Icon={HiLocationMarker} title="Locations" />
@@ -48,7 +48,7 @@ export default function MetadataSection({
             {locations.map((location) => (
               <span
                 key={location.id}
-                className={`inline-flex items-center px-2 py-1.5 rounded-lg text-sm border ${TAG_STYLES.location}`}
+                className={cn(TAG_STYLES.location, baseLabelStyle)}
               >
                 {location.name}
                 {location.country && (
@@ -69,7 +69,7 @@ export default function MetadataSection({
             {timePeriods.map((period) => (
               <span
                 key={period.id}
-                className={`inline-flex flex-col items-center px-2 py-1.5 rounded-lg text-sm border ${TAG_STYLES.time}`}
+                className={cn(TAG_STYLES.time, baseLabelStyle)}
               >
                 {period.label}
                 {period.start_year && period.end_year && (
@@ -90,7 +90,7 @@ export default function MetadataSection({
             {categories.map((category) => (
               <span
                 key={category.id}
-                className={`inline-flex items-center px-2 py-1.5 rounded-lg text-sm border ${TAG_STYLES.category}`}
+                className={cn(TAG_STYLES.category, baseLabelStyle)}
               >
                 {category.name}
               </span>

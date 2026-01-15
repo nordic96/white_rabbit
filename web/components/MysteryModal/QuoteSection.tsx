@@ -99,7 +99,7 @@ export default function QuoteSection({
   }
 
   return (
-    <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-dark-blue via-light-blue to-mystery-purple via-60% p-3 shadow-lg">
+    <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-dark-blue via-light-blue to-mystery-purple via-60% p-3 max-sm:p-2 shadow-lg">
       {/* Subtle background pattern */}
       <div className="absolute inset-0 opacity-5">
         <div
@@ -120,11 +120,11 @@ export default function QuoteSection({
       <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-4">
         {/* Quote Text */}
         <div className="flex-1 animate-in fade-in slide-in-from-bottom-2 duration-500">
-          <blockquote className="text-gray-100 text-base sm:text-base italic font-serif leading-relaxed">
+          <blockquote className="text-gray-100 text-base sm:text-base max-sm:text-sm italic font-serif leading-relaxed">
             {`"${quote}"`}
           </blockquote>
           {attribution && (
-            <cite className="block mt-3 text-sm text-gray-400 not-italic font-sans">
+            <cite className="block mt-3 text-sm max-sm:text-xs text-gray-400 not-italic font-sans">
               — {attribution}
             </cite>
           )}
