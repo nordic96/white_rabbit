@@ -104,6 +104,71 @@ Expected response:
 }
 ```
 
+## Search API Setup
+
+The search API requires a fulltext index to be created in Neo4j before use.
+
+### 1. Create Fulltext Index
+
+Run the following Cypher query in your Neo4j database (via Neo4j Browser or cypher-shell):
+
+```cypher
+CREATE FULLTEXT INDEX globalSearch IF NOT EXISTS
+FOR (n:Mystery|Location|TimePeriod|Category)
+ON EACH [n.title, n.name, n.label];
+```
+
+Or use the provided script:
+```bash
+# Using cypher-shell
+cypher-shell -u neo4j -p <password> -f docs/create_fulltext_index.cypher
+```
+
+### 2. Verify Index Creation
+
+```cypher
+SHOW INDEXES WHERE name = 'globalSearch';
+```
+
+### 3. Search API Usage
+
+```bash
+# Basic search
+curl "http://localhost:8000/api/search?q=bermuda"
+
+# With limit parameter
+curl "http://localhost:8000/api/search?q=ancient&limit=5"
+```
+
+Expected response:
+```json
+{
+  "query": "bermuda",
+  "total": 2,
+  "results": [
+    {
+      "id": "uuid-123",
+      "type": "Mystery",
+      "text": "Bermuda Triangle",
+      "score": 2.45
+    },
+    {
+      "id": "uuid-456",
+      "type": "Location",
+      "text": "Bermuda",
+      "score": 1.89
+    }
+  ]
+}
+```
+
+### Search Query Parameters
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| q | string | Yes | - | Search query (1-200 characters) |
+| limit | int | No | 10 | Max results to return (1-100) |
+
 ## Database Schema
 ## Models
 ### 1. Mystery
