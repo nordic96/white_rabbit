@@ -25,6 +25,28 @@ export default function QuoteSection({
   const quote = t(id);
   const attribution = attributeT(id);
 
+  const handlePlayPause = useCallback(() => {
+    if (!audioRef.current) return;
+
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      audioRef.current.play();
+      setIsPlaying(true);
+    }
+  }, [setIsPlaying, isPlaying]);
+
+  useEffect(() => {
+    function playOnPressPKey(e: KeyboardEvent) {
+      if (e.key === 'p') {
+        handlePlayPause();
+      }
+    }
+    window.addEventListener('keypress', playOnPressPKey);
+    return () => window.removeEventListener('keypress', playOnPressPKey);
+  }, [handlePlayPause]);
+
   // Cleanup audio when modal closes
   useEffect(() => {
     if (!selectedId && audioRef.current) {
@@ -84,18 +106,6 @@ export default function QuoteSection({
   // Don't render if no quote is provided
   if (!quote) {
     return null;
-  }
-
-  function handlePlayPause(): void {
-    if (!audioRef.current) return;
-
-    if (isPlaying) {
-      audioRef.current.pause();
-      setIsPlaying(false);
-    } else {
-      audioRef.current.play();
-      setIsPlaying(true);
-    }
   }
 
   return (

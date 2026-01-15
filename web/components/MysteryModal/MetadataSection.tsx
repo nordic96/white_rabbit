@@ -38,7 +38,7 @@ export default function MetadataSection({
   categories,
 }: MetadataSectionProps): React.ReactElement {
   const baseLabelStyle =
-    'inline-flex items-center px-2 py-1.5 max-sm:py-1 rounded-lg border';
+    'inline-flex flex-col items-center px-2 py-1.5 max-sm:py-1 rounded-lg border text-xs';
   return (
     <div className="grid grid-cols-3 gap-4 text-sm max-sm:text-xs">
       {locations.length > 0 && (
