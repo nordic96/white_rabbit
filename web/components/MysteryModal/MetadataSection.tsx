@@ -28,7 +28,7 @@ function SectionHeader({
 
 const TAG_STYLES = {
   location: 'bg-location-pink text-dark-gray',
-  time: 'bg-tp-skyblue text-dark-gray',
+  time: 'bg-timeperiod-skyblue text-dark-gray',
   category: 'bg-category-yellow text-dark-gray',
 };
 

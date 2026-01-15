@@ -111,7 +111,7 @@ The application uses a dark theme by default. All color definitions are maintain
 --color-mystery-purple: #4142f3
 --color-category-yellow: #fedf66
 --color-location-pink: #ff79c6
---color-tp-skyblue: #8be9fd
+--color-timeperiod-skyblue: #8be9fd
 --color-primary-navy: #1f1e81
 
 /* UI Colors */

@@ -20,7 +20,7 @@ export default function FilterHeader({
       className={cn('sticky top-0 z-10 p-4 text-dark-secondary', {
         'bg-category-yellow': type === 'Category',
         'bg-location-pink': type === 'Location',
-        'bg-tp-skyblue': type === 'Time Period',
+        'bg-timeperiod-skyblue': type === 'Time Period',
       })}
     >
       <div className="flex items-start justify-between">
