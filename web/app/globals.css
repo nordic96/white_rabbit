@@ -10,6 +10,11 @@
   --color-foreground: var(--foreground);
   --font-league-spartan: var(--font-league-spartan);
   --font-roboto: var(--font-roboto);
+  /** Primary Colours for Theme */
+  --color-mystery-purple: #4142f3;
+  --color-category-yellow: #fedf66;
+  --color-primary-navy: #1f1e81;
+  /** */
   --color-dark-blue: #00204e;
   --color-light-blue: #00447c;
   --color-dark-gray: #212121;
