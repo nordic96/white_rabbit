@@ -206,6 +206,41 @@ const [dbStatus, setDbStatus] = useState<DBStatus>('unknown');
 
 ---
 
-**Document Version:** 1.0
-**Last Updated:** 2026-01-14
-**Source:** Health Check Implementation Session
+## Session Learnings - 2026-01-15
+
+### Mistakes & Fixes
+
+- **Issue:** DBServerStatus component not respecting response format from API
+  - **Root Cause:** Component expected response with nested database object but API error responses didn't match ErrorResponse type structure
+  - **Fix:** Ensured API endpoint returns complete error response with `{ error, message, status_code }` fields
+  - **Prevention:** Verify error response format matches the expected type before using in components. Test both success and error paths.
+
+### Patterns Discovered
+
+- **Pattern:** Health Check Polling with Immediate Fetch
+  - **Context:** Monitoring backend status in real-time while user is on page
+  - **Implementation:** Call fetch function immediately on mount, then set interval for subsequent polling
+  - **Key Detail:** This prevents user from waiting for full interval duration to see initial status
+
+- **Pattern:** API Response Type Consistency
+  - **Context:** Components depend on consistent error response structure for proper error handling
+  - **Implementation:** ErrorResponse type requires `error` (string), `message` (string), and `status_code` (number)
+  - **Key Detail:** All error responses, whether from API endpoints or caught exceptions, must match this structure
+
+### Debugging Wins
+
+- **Problem:** DBServerStatus component throwing type errors when receiving API error responses
+  - **Approach:** Traced error to API endpoint returning incomplete error object
+  - **Tool/Technique:** Checked fetchApi type definitions to understand expected ErrorResponse structure
+
+### Performance Notes
+
+- Polling interval set to 10 seconds balances responsiveness with API load
+- Status check is lightweight (no complex data fetching), suitable for polling frequency
+- Consider adding exponential backoff if backend is consistently unavailable
+
+---
+
+**Document Version:** 2.0
+**Last Updated:** 2026-01-15
+**Source:** Health Check Implementation + Global Search Session

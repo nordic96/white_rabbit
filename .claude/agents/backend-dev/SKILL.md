@@ -474,7 +474,59 @@ Use this checklist to self-review before submitting:
 
 ---
 
-**Document Version:** 1.0
-**Last Updated:** 2026-01-08
-**Source:** PR #14 Code Review Feedback
+---
+
+## Session Learnings - 2026-01-15
+
+### Mistakes & Fixes
+
+- **Issue:** SQL Injection vulnerability in search_service.py
+  - **Root Cause:** Using f-string interpolation for user input in Cypher queries instead of parameterized queries
+  - **Fix:** Replaced `f"CALL db.index.fulltext.queryNodes('{query}')"` with parameterized query `CALL db.index.fulltext.queryNodes($query)` and passed query as named parameter
+  - **Prevention:** Always use parameterized queries with `$variable` syntax and pass values as named parameters in `tx.run(query, param=value)`
+
+### Patterns Discovered
+
+- **Pattern:** FastAPI Router/Service/Schema Separation
+  - **Context:** Building new endpoints with clean architecture separation of concerns
+  - **Implementation:**
+    - `schemas/search.py`: Define request/response Pydantic models
+    - `services/search_service.py`: Database query logic with parameterized Cypher
+    - `routers/search.py`: FastAPI route handlers that orchestrate service calls
+    - `main.py`: Register routers with `app.include_router()`
+
+- **Pattern:** Neo4j Fulltext Index Creation
+  - **Context:** Implementing global search across multiple node types
+  - **Implementation:** `CREATE FULLTEXT INDEX globalSearch FOR (n:Mystery|Location|TimePeriod|Category) ON EACH [n.title, n.name, n.label]`
+  - **Key Detail:** Use `ON EACH [properties]` syntax when indexing properties that may not exist on all node types (handles null gracefully)
+
+- **Pattern:** Parameterized Cypher Queries
+  - **Context:** Preventing injection attacks and handling user input safely
+  - **Implementation:**
+    ```python
+    query = "CALL db.index.fulltext.queryNodes($queryIndex, $queryString) YIELD node RETURN node"
+    result = await tx.run(query, queryIndex="globalSearch", queryString=query_text)
+    ```
+
+### Debugging Wins
+
+- **Problem:** Search returning no results or throwing index errors
+  - **Approach:** Verified fulltext index exists and properties are indexed correctly using `CALL db.indexes()` in Neo4j Browser
+  - **Tool/Technique:** Direct Neo4j Browser inspection to validate index structure before implementation
+
+- **Problem:** Security vulnerability in existing code
+  - **Approach:** Reviewed string interpolation patterns in legacy code and identified unparameterized query
+  - **Tool/Technique:** Static code review for Cypher query construction patterns
+
+### Performance Notes
+
+- Fulltext index queries are efficient for global search across multiple node types
+- Parameterized queries have no performance penalty over interpolation and provide security benefits
+- Consider pagination for large result sets using SKIP/LIMIT in Cypher
+
+---
+
+**Document Version:** 2.0
+**Last Updated:** 2026-01-15
+**Source:** Global Search Implementation (Issue #28) + PR #14 Code Review Feedback
 **Maintainer:** Claude Code Backend Agent
