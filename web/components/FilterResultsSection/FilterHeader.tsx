@@ -17,7 +17,7 @@ export default function FilterHeader({
 
   return (
     <div
-      className={cn('sticky top-0 z-10 p-4 text-dark-secondary', {
+      className={cn('sticky top-0 z-40 p-4 text-dark-secondary', {
         'bg-category-yellow': type === 'Category',
         'bg-location-pink': type === 'Location',
         'bg-timeperiod-skyblue': type === 'Time Period',
