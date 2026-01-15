@@ -18,10 +18,10 @@ import TTSServerStatus from '../ServerStatus/TTSServerStatus';
 import DBServerStatus from '../ServerStatus/DBServerStatus';
 
 const NodeColorMap: Record<NodeType, string> = {
-  Category: '#8BE9FD',
+  Category: '#fedf66',
   Location: '#FF79C6',
-  Mystery: '#BD93F9',
-  TimePeriod: '#F1FA8C',
+  Mystery: '#7f00ff',
+  TimePeriod: '#8BE9FD',
 };
 
 export default function GraphMap() {

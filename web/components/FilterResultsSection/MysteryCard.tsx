@@ -35,12 +35,12 @@ export default function MysteryCard({ item }: MysteryCardProps) {
       onKeyDown={handleKeyDown}
       className={cn(
         'flex gap-3 p-3 rounded-lg cursor-pointer transition-all duration-200',
-        'bg-white dark:bg-dark-secondary',
-        'border border-gray-200 dark:border-transparent',
-        'hover:border-blue-400 dark:hover:border-gray-600',
+        'bg-dark-secondary',
+        'border',
+        'hover:border-mystery-purple',
         'hover:shadow-lg hover:shadow-blue-500/10 dark:hover:shadow-black/20',
         'hover:-translate-y-0.5',
-        'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-dark-gray',
+        'focus:outline-none focus:ring-1 focus:ring-mystery-purple focus:ring-offset-1 focus:ring-offset-mystery-purple',
       )}
     >
       <div className="relative w-20 h-20 shrink-0 rounded-md overflow-hidden bg-gray-100 dark:bg-dark-gray">
@@ -60,12 +60,10 @@ export default function MysteryCard({ item }: MysteryCardProps) {
       </div>
 
       <div className="flex-1 min-w-0 flex flex-col justify-center">
-        <h3 className="font-medium text-dark-gray dark:text-gray-100 line-clamp-2 leading-tight">
-          {title}
-        </h3>
+        <h2 className="text-white line-clamp-2 leading-tight">{title}</h2>
 
         {first_reported_year && (
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          <p className="text-sm text-gray-400 mt-1">
             ~{wrapAdBc(first_reported_year)}
           </p>
         )}

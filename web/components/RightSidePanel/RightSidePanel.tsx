@@ -30,14 +30,15 @@ export default function RightSidePanel() {
       className={cn(
         'absolute right-0 top-0 h-full transition-all duration-300 ease-out',
         'w-90 shadow-2xl shadow-black/20 dark:shadow-black/50',
-        'border-l border-gray-200 dark:border-gray-700',
-        'bg-gray-100 dark:bg-dark-gray',
         filterId === null
           ? 'translate-x-full opacity-0'
           : 'translate-x-0 opacity-100',
       )}
     >
-      <FilterResultsSection />
+      <div className={'absolute bg-dark-gray opacity-70 inset-0 z-49'}></div>
+      <div className={'z-50 absolute inset-0'}>
+        <FilterResultsSection />
+      </div>
     </div>
   );
 }
