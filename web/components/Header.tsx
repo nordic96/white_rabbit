@@ -1,11 +1,15 @@
 'use client';
 
+import { cn } from '@/utils';
 import { SearchBar } from './SearchBar';
 
 export default function Header() {
   return (
     <header
-      className="flex items-center justify-center grow min-h-14 px-4 border-b border-dark-secondary dark:bg-dark-secondary"
+      className={cn(
+        'flex items-center justify-center grow min-h-14 px-4',
+        'border-b border-dark-secondary bg-mystery-purple',
+      )}
       role="banner"
     >
       {/* Left section - placeholder for logo/branding */}
