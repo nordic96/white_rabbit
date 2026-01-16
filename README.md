@@ -3,7 +3,7 @@
 
 ## 0. Project Overview
 
-![Demo GIF](/resources/white_rabbit_demo.gif)
+<img src="resources/demo_v0.0.2.gif" alt="Description of image" style="width: 100%; max-width: 100%;">
 
 A Web Application with Neo4J's Knowledge Database on World's unsolved mystyeries.
 
