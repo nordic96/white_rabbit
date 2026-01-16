@@ -13,23 +13,19 @@ const STATUS_CONFIG: Record<
   { colorClasses: string; Icon: IconType | null }
 > = {
   solved: {
-    colorClasses:
-      'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
+    colorClasses: 'bg-green-900/40 text-green-300',
     Icon: HiCheck,
   },
   unsolved: {
-    colorClasses:
-      'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300',
+    colorClasses: 'bg-red-900/40 text-red-300',
     Icon: HiX,
   },
   disputed: {
-    colorClasses:
-      'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300',
+    colorClasses: 'bg-yellow-900/40 text-yellow-300',
     Icon: HiExclamation,
   },
   default: {
-    colorClasses:
-      'bg-gray-100 text-dark-secondary dark:bg-dark-gray/40 dark:text-gray-300',
+    colorClasses: 'bg-dark-gray/40 text-gray-300',
     Icon: null,
   },
 };
@@ -67,7 +63,7 @@ export default function StatusBadge({
   return (
     <span
       className={cn(
-        'inline-flex items-center p-1.5 rounded-full text-xs font-medium',
+        'inline-flex items-center p-1.5 max-sm:p-1 rounded-full text-xs font-medium',
         colorClasses,
       )}
     >

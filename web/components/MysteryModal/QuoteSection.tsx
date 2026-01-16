@@ -25,6 +25,28 @@ export default function QuoteSection({
   const quote = t(id);
   const attribution = attributeT(id);
 
+  const handlePlayPause = useCallback(() => {
+    if (!audioRef.current) return;
+
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      audioRef.current.play();
+      setIsPlaying(true);
+    }
+  }, [setIsPlaying, isPlaying]);
+
+  useEffect(() => {
+    function playOnPressPKey(e: KeyboardEvent) {
+      if (e.key === 'p') {
+        handlePlayPause();
+      }
+    }
+    window.addEventListener('keypress', playOnPressPKey);
+    return () => window.removeEventListener('keypress', playOnPressPKey);
+  }, [handlePlayPause]);
+
   // Cleanup audio when modal closes
   useEffect(() => {
     if (!selectedId && audioRef.current) {
@@ -74,6 +96,9 @@ export default function QuoteSection({
       if (!mountedRef.current || !url) return;
 
       const newAudio = new Audio(url);
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
       audioRef.current = newAudio;
 
       newAudio.addEventListener('canplaythrough', handleCanPlay);
@@ -86,20 +111,8 @@ export default function QuoteSection({
     return null;
   }
 
-  function handlePlayPause(): void {
-    if (!audioRef.current) return;
-
-    if (isPlaying) {
-      audioRef.current.pause();
-      setIsPlaying(false);
-    } else {
-      audioRef.current.play();
-      setIsPlaying(true);
-    }
-  }
-
   return (
-    <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-dark-blue via-dark-blue to-light-blue via-80% p-3 shadow-lg">
+    <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-dark-blue via-light-blue to-mystery-purple via-60% p-3 max-sm:p-2 shadow-lg">
       {/* Subtle background pattern */}
       <div className="absolute inset-0 opacity-5">
         <div
@@ -120,11 +133,11 @@ export default function QuoteSection({
       <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-4">
         {/* Quote Text */}
         <div className="flex-1 animate-in fade-in slide-in-from-bottom-2 duration-500">
-          <blockquote className="text-gray-100 text-base sm:text-base italic font-serif leading-relaxed">
+          <blockquote className="text-gray-100 text-base sm:text-base max-sm:text-sm italic font-serif leading-relaxed">
             {`"${quote}"`}
           </blockquote>
           {attribution && (
-            <cite className="block mt-3 text-sm text-gray-400 not-italic font-sans">
+            <cite className="block mt-3 text-sm max-sm:text-xs text-gray-400 not-italic font-sans">
               — {attribution}
             </cite>
           )}

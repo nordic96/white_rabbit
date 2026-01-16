@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import HeroImage from './HeroImage';
 import HeroMetadata from './HeroMetadata';
 import ThumbnailRow from './ThumbnailRow';
@@ -33,6 +33,31 @@ export default function HeroSection({
 }: HeroSectionProps): React.ReactElement {
   const [activeIndex, setActiveIndex] = useState(0);
   const activeImage = images[activeIndex] ?? null;
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight') {
+        setActiveIndex((prevIndex) => {
+          const nextIndex = prevIndex + 1;
+          if (nextIndex >= 0 && nextIndex < images.length) {
+            return nextIndex;
+          }
+          return prevIndex;
+        });
+      } else if (e.key === 'ArrowLeft') {
+        setActiveIndex((prevIndex) => {
+          const nextIndex = prevIndex - 1;
+          if (nextIndex >= 0 && nextIndex < images.length) {
+            return nextIndex;
+          }
+          return prevIndex;
+        });
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [images.length]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">

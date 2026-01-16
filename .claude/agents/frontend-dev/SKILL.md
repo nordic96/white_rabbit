@@ -305,6 +305,86 @@ const [dbStatus, setDbStatus] = useState<DBStatus>('unknown');
 
 ---
 
-**Document Version:** 2.1
+---
+
+## Session Learnings - 2026-01-15 (Part 3 - PR #44: Theme Changes & UI Fixes)
+
+### Mistakes & Fixes
+
+- **Issue:** Mystery node color inconsistency between GraphMap.tsx and CSS
+  - **Root Cause:** Color definition (#7f00ff) in GraphMap.tsx's NodeColorMap didn't match globals.css definition (#4142f3), causing visual mismatches when the theme was updated
+  - **Fix:** Updated NodeColorMap in GraphMap.tsx to match the correct color definition (#4142f3) from globals.css
+  - **Prevention:** Maintain a single source of truth for color definitions; consider extracting NodeColorMap to a constants file (e.g., constants/colors.ts) that both components and CSS can import, or add linting rules to catch color inconsistencies
+
+- **Issue:** Unused dark: Tailwind class prefixes scattered across 10+ components after dark mode removal
+  - **Root Cause:** Dark mode was removed from the project but the dark: prefixes were left in place, cluttering the codebase and confusing future maintainers
+  - **Fix:** Used Grep to find all occurrences of dark: classes and removed them from affected components
+  - **Prevention:** When removing features (like dark mode), create a systematic cleanup checklist and use Grep to verify all related code is removed. Consider a pre-commit hook that flags deprecated patterns using eslint-comments/no-unused-disable
+
+- **Issue:** Prettier formatting violations in multiline JSX expressions
+  - **Root Cause:** Complex multiline JSX wasn't properly formatted according to Prettier standards
+  - **Fix:** Applied Prettier formatting fixes to ensure consistent code style across the component
+  - **Prevention:** Configure pre-commit hooks with Prettier to catch formatting issues before they reach code review
+
+- **Issue:** Unused eslint-disable directive left in code
+  - **Root Cause:** ESLint disable comments were added during development but not removed after the underlying issue was resolved
+  - **Fix:** Removed the unused eslint-disable directive during cleanup
+  - **Prevention:** Use ESLint rules that flag unused directives to catch these automatically during linting
+
+### Patterns Discovered
+
+- **Pattern:** Tailwind Responsive Classes for Mobile-First Design
+  - **Context:** Fixing touch target sizes for mobile devices (SearchBar component)
+  - **Implementation:** Use format `py-2 sm:py-1` where the base class applies to mobile and sm: prefix overrides for larger screens. This ensures proper spacing on small screens while optimizing for larger displays
+  - **Example:** SearchBar padding set to `py-2` for mobile with `sm:py-1` for tablet/desktop, improving accessibility on touch devices
+  - **Key Detail:** Base class is the mobile-first approach, then override with responsive prefixes for larger breakpoints
+
+- **Pattern:** Centralized Color Definitions with NodeColorMap
+  - **Context:** Maintaining consistent node colors across graph visualizations
+  - **Implementation:** Define color mappings in TypeScript (NodeColorMap object) that are used in React components. Keep these in sync with CSS global variables for consistency
+  - **Example:**
+    ```typescript
+    const NodeColorMap: Record<string, string> = {
+      Mystery: '#4142f3',
+      Person: '#9f1239',
+      Place: '#ea580c',
+    };
+    ```
+  - **Key Detail:** Maps node types to their visual colors. This approach allows dynamic color changes in JavaScript while maintaining CSS-based fallbacks for consistency
+
+- **Pattern:** Systematic Code Cleanup with Grep
+  - **Context:** Finding and removing deprecated patterns (dark: classes) across large codebases
+  - **Implementation:** Use Grep with specific patterns and file type filters to identify all occurrences. Execute targeted removals based on the results
+  - **Grep Example:** `grep -r "dark:" --glob="**/*.tsx" --glob="**/*.ts"` to find all dark mode prefixes
+  - **Key Detail:** Always verify results with count output_mode first, then execute removals file-by-file to ensure accuracy
+
+### Debugging Wins
+
+- **Problem:** Identifying all components affected by dark mode removal
+  - **Approach:** Used Grep to systematically search for `dark:` class prefixes across the codebase, then verified the list of files to ensure complete cleanup
+  - **Tool/Technique:** Grep with glob patterns to filter TypeScript/JSX files, output_mode set to "files_with_matches" to see all affected files
+  - **Result:** Successfully removed dark: prefixes from all 10 components without missing any
+
+- **Problem:** Verifying color consistency between GraphMap logic and styles
+  - **Approach:** Cross-referenced the NodeColorMap in GraphMap.tsx with the corresponding colors in globals.css to ensure values matched
+  - **Tool/Technique:** Manual code review of both files side-by-side, visual inspection of the rendered graph component to verify colors matched
+  - **Result:** Identified the color mismatch (#7f00ff vs #4142f3) and corrected it to match the theme
+
+### Performance Notes
+
+- Mobile touch targets (py-2 for small screens) improve usability without sacrificing performance
+- Centralizing color definitions in TypeScript reduces CSS specificity issues and improves maintainability
+- Removing unused dark: classes reduces CSS bundle size slightly and improves code clarity
+
+### Component Updates
+
+Components modified in this session:
+- GraphMap.tsx (color definition fix, added GraphLegend)
+- SearchBar.tsx (responsive touch targets with py-2 sm:py-1)
+- 10+ components (removed dark: class prefixes)
+
+---
+
+**Document Version:** 2.2
 **Last Updated:** 2026-01-15
-**Source:** Health Check Implementation + Global Search Session + SearchBar Refactoring (Issue #27)
+**Source:** Health Check Implementation + Global Search Session + SearchBar Refactoring (Issue #27) + PR #44 Theme Changes & UI Fixes

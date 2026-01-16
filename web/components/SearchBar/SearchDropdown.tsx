@@ -108,10 +108,10 @@ export function SearchDropdown({
       <div
         className={cn(
           'absolute z-50 w-full mt-1 p-4',
-          'bg-white dark:bg-dark-gray',
-          'border border-gray-200 dark:border-gray-700',
+          'bg-dark-gray',
+          'border border-gray-700',
           'rounded-lg shadow-lg',
-          'text-center text-gray-500 dark:text-gray-400',
+          'text-center text-gray-400',
         )}
         role="status"
         aria-live="polite"
@@ -129,10 +129,10 @@ export function SearchDropdown({
       <div
         className={cn(
           'absolute z-50 w-full mt-1 p-4',
-          'bg-white dark:bg-dark-gray',
-          'border border-red-200 dark:border-red-800',
+          'bg-dark-gray',
+          'border border-red-800',
           'rounded-lg shadow-lg',
-          'text-center text-red-500 dark:text-red-400',
+          'text-center text-red-400',
         )}
         role="alert"
       >
@@ -146,10 +146,10 @@ export function SearchDropdown({
       <div
         className={cn(
           'absolute z-50 w-full mt-1 p-4',
-          'bg-white dark:bg-dark-gray',
-          'border border-gray-200 dark:border-gray-700',
+          'bg-dark-gray',
+          'border border-gray-700',
           'rounded-lg shadow-lg',
-          'text-center text-gray-500 dark:text-gray-400',
+          'text-center text-gray-400',
         )}
         role="status"
       >
@@ -164,8 +164,8 @@ export function SearchDropdown({
       ref={listboxRef}
       className={cn(
         'absolute z-50 w-full mt-1',
-        'bg-white dark:bg-dark-gray',
-        'border border-gray-200 dark:border-gray-700',
+        'bg-dark-gray',
+        'border border-gray-700',
         'rounded-lg shadow-lg',
         'max-h-96 overflow-y-auto',
       )}
@@ -186,7 +186,7 @@ export function SearchDropdown({
               <div
                 className={cn(
                   'px-3 py-1.5 text-xs font-semibold uppercase tracking-wider',
-                  'text-gray-500 dark:text-gray-400',
+                  'text-gray-400',
                   'flex items-center gap-2',
                 )}
               >
@@ -195,9 +195,7 @@ export function SearchDropdown({
                   aria-hidden="true"
                 />
                 {config.label}
-                <span className="text-gray-400 dark:text-gray-500">
-                  ({items.length})
-                </span>
+                <span className="text-gray-500">({items.length})</span>
               </div>
 
               {/* Category Items */}
@@ -214,9 +212,7 @@ export function SearchDropdown({
                     className={cn(
                       'px-3 py-2 cursor-pointer',
                       'transition-colors',
-                      isActive
-                        ? 'bg-blue-50 dark:bg-blue-900/30'
-                        : 'hover:bg-gray-50 dark:hover:bg-gray-800',
+                      isActive ? 'bg-blue-900/30' : 'hover:bg-gray-800',
                     )}
                     onClick={() => onSelect(result)}
                     onMouseEnter={() => onHover(flatIndex)}
@@ -225,14 +221,12 @@ export function SearchDropdown({
                       <span
                         className={cn(
                           'text-sm',
-                          isActive
-                            ? 'text-blue-700 dark:text-blue-300'
-                            : 'text-gray-900 dark:text-gray-100',
+                          isActive ? 'text-blue-300' : 'text-gray-100',
                         )}
                       >
                         {result.text}
                       </span>
-                      <span className="text-xs text-gray-400 dark:text-gray-500">
+                      <span className="text-xs text-gray-500">
                         {result.score.toFixed(2)}
                       </span>
                     </div>

@@ -100,6 +100,59 @@ Playwright MCP is configured project-wide in `.mcp.json` for browser automation 
 - User interaction automation
 - Accessibility testing
 
+## UI Components & Styling
+
+### Theme & Color Palette
+
+The application uses a dark theme by default. All color definitions are maintained in `app/globals.css` as CSS custom properties for consistency across components:
+
+```css
+/* Primary Node Type Colors */
+--color-mystery-purple: #4142f3
+--color-category-yellow: #fedf66
+--color-location-pink: #ff79c6
+--color-time-period-skyblue: #8be9fd
+--color-primary-navy: #1f1e81
+
+/* UI Colors */
+--color-dark-gray: #212121
+--color-dark-secondary: #303030
+```
+
+These colors map to Neo4j node types and are used throughout the application for visual consistency.
+
+### GraphLegend Component
+
+Location: `components/GraphMap/GraphLegend.tsx`
+
+Displays a legend showing all graph node types with their corresponding colors and icons:
+- **Mystery** (purple #4142f3) - Question mark icon
+- **Location** (pink #ff79c6) - Location marker icon
+- **Time Period** (sky blue #8be9fd) - Clock icon
+- **Category** (yellow #fedf66) - Tag icon
+
+The component uses a fixed LEGEND_ITEMS array that mirrors the NodeColorMap in GraphMap.tsx. If adding new node types, update both locations.
+
+Usage: Integrated into GraphMap component's absolute positioned top-left overlay.
+
+### Node Color Mapping
+
+The `NodeColorMap` in `components/GraphMap/GraphMap.tsx` defines colors for all graph node types:
+
+```typescript
+const NodeColorMap: Record<NodeType, string> = {
+  Category: '#fedf66',
+  Location: '#ff79c6',
+  Mystery: '#4142f3',
+  TimePeriod: '#8be9fd',
+};
+```
+
+This map is used when rendering nodes in the Neo4j visualization library (NVL). Keep this synchronized with:
+1. LEGEND_ITEMS in GraphLegend.tsx
+2. CSS custom properties in globals.css
+3. Any design system documentation
+
 ## API Endpoints
 
 ### Global Search - `GET /api/search`

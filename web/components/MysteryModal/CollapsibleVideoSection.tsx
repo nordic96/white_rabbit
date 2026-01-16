@@ -19,15 +19,15 @@ export default function CollapsibleVideoSection({
   }
 
   return (
-    <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+    <div className="border border-gray-700 rounded-lg overflow-hidden">
       {/* Toggle Button */}
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-dark-secondary/50 hover:bg-gray-100 dark:hover:bg-dark-secondary transition-colors"
+        className="w-full flex items-center justify-between p-4 bg-dark-secondary/50 hover:bg-dark-secondary transition-colors"
         aria-expanded={isOpen}
       >
-        <span className="flex items-center gap-2 font-medium text-dark-gray dark:text-gray-100">
+        <span className="flex items-center gap-2 font-medium text-gray-100">
           <HiPlay className="w-5 h-5 text-blue-500" aria-hidden="true" />
           Watch Analysis Videos ({videos.length})
         </span>
@@ -68,7 +68,7 @@ export default function CollapsibleVideoSection({
                     'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
                     index === activeIndex
                       ? 'bg-blue-500 text-white'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600',
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600',
                   )}
                   aria-pressed={index === activeIndex}
                 >
