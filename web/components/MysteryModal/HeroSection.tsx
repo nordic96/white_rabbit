@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import HeroImage from './HeroImage';
 import HeroMetadata from './HeroMetadata';
 import ThumbnailRow from './ThumbnailRow';
@@ -34,8 +34,8 @@ export default function HeroSection({
   const [activeIndex, setActiveIndex] = useState(0);
   const activeImage = images[activeIndex] ?? null;
 
-  const navigatetNext = useCallback(
-    (e: KeyboardEvent) => {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowRight') {
         setActiveIndex((prevIndex) => {
           const nextIndex = prevIndex + 1;
@@ -44,14 +44,7 @@ export default function HeroSection({
           }
           return prevIndex;
         });
-      }
-    },
-    [setActiveIndex, images.length],
-  );
-
-  const navigatePrev = useCallback(
-    (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft') {
+      } else if (e.key === 'ArrowLeft') {
         setActiveIndex((prevIndex) => {
           const nextIndex = prevIndex - 1;
           if (nextIndex >= 0 && nextIndex < images.length) {
@@ -60,19 +53,11 @@ export default function HeroSection({
           return prevIndex;
         });
       }
-    },
-    [setActiveIndex, images.length],
-  );
-
-  useEffect(() => {
-    window.addEventListener('keydown', navigatetNext);
-    window.addEventListener('keydown', navigatePrev);
-
-    return () => {
-      window.removeEventListener('keydown', navigatetNext);
-      window.removeEventListener('keydown', navigatePrev);
     };
-  }, [navigatetNext, navigatePrev]);
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [images.length]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">

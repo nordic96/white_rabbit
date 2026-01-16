@@ -14,7 +14,7 @@
   --color-mystery-purple: #4142f3;
   --color-category-yellow: #fedf66;
   --color-location-pink: #ff79c6;
-  --color-timeperiod-skyblue: #8be9fd;
+  --color-time-period-skyblue: #8be9fd;
   --color-primary-navy: #1f1e81;
   /** */
   --color-dark-blue: #00204e;
@@ -42,7 +42,7 @@
     border-radius: 24px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: var(--color-gray-700);
+    background: #4a4a4a;
   }
 }
 

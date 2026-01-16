@@ -62,8 +62,8 @@ export default function MysteryModalSkeleton() {
             {/* Time Periods */}
             <div className="space-y-2">
               <div className="h-3 w-20 bg-gray-600 rounded" />
-              <div className="h-7 w-full bg-timeperiod-skyblue/30 rounded" />
-              <div className="h-7 w-2/3 bg-timeperiod-skyblue/30 rounded" />
+              <div className="h-7 w-full bg-time-period-skyblue/30 rounded" />
+              <div className="h-7 w-2/3 bg-time-period-skyblue/30 rounded" />
             </div>
 
             {/* Categories */}
