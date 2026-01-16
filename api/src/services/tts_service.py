@@ -6,8 +6,11 @@ This service handles text-to-speech audio generation with caching support.
 import asyncio
 import hashlib
 import logging
+import os
+import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 
 import numpy as np
 import soundfile as sf
@@ -18,6 +21,101 @@ from ..exceptions import TTSGenerationError, TextTooLongError
 from .tts_model import get_tts_pipeline
 
 logger = logging.getLogger(__name__)
+
+# Bounded thread pool for CPU-bound TTS operations
+_tts_executor = ThreadPoolExecutor(max_workers=settings.tts_max_workers)
+
+
+def get_cache_files_by_age(cache_dir: Path) -> List[tuple[Path, float]]:
+    """
+    Get all cache files sorted by modification time (oldest first).
+
+    Args:
+        cache_dir: Path to the cache directory
+
+    Returns:
+        List of (path, mtime) tuples sorted by modification time
+    """
+    files = []
+    for file_path in cache_dir.glob("*.wav"):
+        try:
+            mtime = file_path.stat().st_mtime
+            files.append((file_path, mtime))
+        except OSError:
+            continue
+    return sorted(files, key=lambda x: x[1])
+
+
+def get_cache_size_bytes(cache_dir: Path) -> int:
+    """
+    Calculate total size of cache directory in bytes.
+
+    Args:
+        cache_dir: Path to the cache directory
+
+    Returns:
+        Total size in bytes
+    """
+    total = 0
+    for file_path in cache_dir.glob("*.wav"):
+        try:
+            total += file_path.stat().st_size
+        except OSError:
+            continue
+    return total
+
+
+async def cleanup_old_cache_files() -> int:
+    """
+    Clean up cache files based on TTL and max size limits.
+
+    This function removes:
+    1. Files older than tts_cache_ttl_hours
+    2. Oldest files when total size exceeds tts_cache_max_size_mb
+
+    Returns:
+        Number of files removed
+    """
+    cache_dir = Path(settings.tts_cache_dir)
+    if not cache_dir.exists():
+        return 0
+
+    removed_count = 0
+    current_time = time.time()
+    ttl_seconds = settings.tts_cache_ttl_hours * 3600
+    max_size_bytes = settings.tts_cache_max_size_mb * 1024 * 1024
+
+    # Get all files sorted by age
+    files = get_cache_files_by_age(cache_dir)
+
+    # Remove files older than TTL
+    for file_path, mtime in files[:]:
+        if current_time - mtime > ttl_seconds:
+            try:
+                file_path.unlink()
+                files.remove((file_path, mtime))
+                removed_count += 1
+                logger.info(f"Removed expired cache file: {file_path.name}")
+            except OSError as e:
+                logger.warning(f"Failed to remove cache file {file_path}: {e}")
+
+    # Remove oldest files if cache exceeds max size
+    current_size = get_cache_size_bytes(cache_dir)
+    while current_size > max_size_bytes and files:
+        file_path, _ = files.pop(0)  # Remove oldest
+        try:
+            file_size = file_path.stat().st_size
+            file_path.unlink()
+            current_size -= file_size
+            removed_count += 1
+            logger.info(f"Removed cache file for size limit: {file_path.name}")
+        except OSError as e:
+            logger.warning(f"Failed to remove cache file {file_path}: {e}")
+
+    if removed_count > 0:
+        logger.info(f"Cache cleanup complete. Removed {removed_count} files.")
+
+    return removed_count
 
 
 def _generate_cache_key(text: str, voice_id: str) -> str:
@@ -117,7 +215,7 @@ async def _generate_audio_sync(text: str, voice_id: str, cache_path: Path):
                     }
                 )
 
-        await loop.run_in_executor(None, generate)
+        await loop.run_in_executor(_tts_executor, generate)
 
     except TTSGenerationError:
         raise

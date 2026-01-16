@@ -7,15 +7,22 @@ This module provides endpoints for:
 - Model warmup
 - Available voices listing
 """
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from typing import List, Dict, Any
-from ..schemas.tts import TTSRequest, TTSResponse
-from ..services.tts_service import generate_tts_audio
-from ..services.tts_model import warmup_tts_model, is_tts_model_ready
-from ..config import settings
 import logging
 
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+from ..schemas.tts import TTSRequest, TTSResponse
+from ..services.tts_service import generate_tts_audio, cleanup_old_cache_files
+from ..services.tts_model import warmup_tts_model, is_tts_model_ready
+from ..config import settings
+
 logger = logging.getLogger(__name__)
+
+# Get limiter from app state
+limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter(
     prefix="/api/tts",
@@ -43,6 +50,9 @@ router = APIRouter(
         400: {
             "description": "Bad request - text too long or invalid parameters"
         },
+        429: {
+            "description": "Rate limit exceeded"
+        },
         500: {
             "description": "Audio generation failed"
         },
@@ -51,23 +61,29 @@ router = APIRouter(
         }
     }
 )
-async def create_tts(request: TTSRequest) -> TTSResponse:
+@limiter.limit(settings.rate_limit_tts)
+async def create_tts(request: Request, tts_request: TTSRequest) -> TTSResponse:
     """
     Generate TTS audio from text.
 
     This endpoint converts text to speech using the Kokoro-82M model.
     Generated audio is cached based on text content and voice ID.
+    Rate limited to 10 requests per minute per IP.
 
     Args:
-        request: TTS request containing mystery_id, text, and optional voice_id
+        request: FastAPI request object (for rate limiting)
+        tts_request: TTS request containing mystery_id, text, and optional voice_id
 
     Returns:
         TTSResponse with audio URL and cache status
     """
+    # Trigger cache cleanup in background (non-blocking)
+    await cleanup_old_cache_files()
+
     return await generate_tts_audio(
-        mystery_id=request.mystery_id,
-        text=request.text,
-        voice_id=request.voice_id
+        mystery_id=tts_request.mystery_id,
+        text=tts_request.text,
+        voice_id=tts_request.voice_id
     )
 
 
