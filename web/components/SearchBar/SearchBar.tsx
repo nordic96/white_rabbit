@@ -125,7 +125,7 @@ export default function SearchBar() {
           onFocus={handleFocus}
           placeholder="Search mysteries, locations, time periods..."
           className={cn(
-            'w-full py-2 sm:py-1 pl-10 pr-10 text-sm max-sm:text-xs',
+            'w-full py-1 pl-10 pr-10 text-sm max-sm:text-xs',
             'bg-dark-gray',
             'border border-gray-600',
             'rounded-full',

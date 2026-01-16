@@ -1,6 +1,9 @@
 # White Rabbit
-
 > *"You take the blue pill - the story ends, you wake up in your bed and believe whatever you want to believe. You take the red pill - you stay in Wonderland and I show you how deep the rabbit hole goes"* - Morpheus [Matrix]
+
+![BrandLogo designed with Google Nano Banana](./resources/brand_logo.png)
+*Logo Designed by Google Nano Banana*
+
 
 <img src="resources/demo_v0.0.2.gif" alt="White Rabbit Demo" style="width: 100%; max-width: 100%;">
 

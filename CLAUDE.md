@@ -21,14 +21,23 @@ No test framework is currently configured.
 
 - **Frontend:** Next.js 16, React 19, TypeScript 5.9
 - **Styling:** Tailwind CSS 4 with PostCSS
-- **Backend (planned):** Python FastAPI for Neo4J CRUD operations
-- **Database (planned):** Neo4J graph database
+- **Backend:** Python 3.11 with FastAPI for Neo4J CRUD operations and TTS service
+- **Database:** Neo4J graph database
+- **TTS Engine:** Kokoro-82M model for text-to-speech audio generation
+- **Rate Limiting:** slowapi for API rate limiting
+- **Security:** Pydantic schema validation, input validation, rate limiting, cache security
 
 ## Architecture
 
 ```
 app/                 # Next.js App Router (pages and layouts)
-api/                 # Backend API directory (currently empty, planned for FastAPI)
+api/src/             # FastAPI backend
+  ├── config.py      # Configuration management with Pydantic Settings
+  ├── main.py        # FastAPI app initialization with security checks
+  ├── routers/       # API endpoint definitions
+  ├── services/      # Business logic (TTS, search, etc.)
+  ├── db/            # Database connections and operations
+  └── schemas/       # Request/response validation schemas
 public/              # Static assets
 .claude/agents/      # Custom Claude Code agent definitions
 ```
@@ -155,9 +164,71 @@ This map is used when rendering nodes in the Neo4j visualization library (NVL). 
 
 ## API Endpoints
 
+### Text-To-Speech - `POST /api/tts`
+
+Generates audio from text using the Kokoro-82M model with caching.
+
+**Rate Limited:** 10 requests per minute per IP
+
+**Request Body:**
+```json
+{
+  "mystery_id": "mystery_123",
+  "text": "The Lost City of Atlantis remains one of history's greatest mysteries.",
+  "voice_id": "bm_fable"  // optional, defaults to tts_default_voice
+}
+```
+
+**Response:**
+```json
+{
+  "audio_url": "/static/audio/a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6.wav",
+  "cached": true  // true if returned from cache, false if newly generated
+}
+```
+
+**Error Responses:**
+- `400`: Text too long (exceeds `tts_max_text_length`)
+- `429`: Rate limit exceeded (10/minute)
+- `500`: Audio generation failed
+- `503`: TTS model not ready
+
+**Cache Behavior:**
+- Cache keys are deterministic (SHA256 hash of text + voice_id)
+- Identical requests return cached audio for better performance
+- Background cleanup removes old files and enforces size limits
+
+### Text-To-Speech Health Check - `GET /api/tts/health`
+
+Returns TTS service status and configuration.
+
+**Response:**
+```json
+{
+  "status": "ready",
+  "model_loaded": false,
+  "lazy_load": true,
+  "default_voice": "bm_fable",
+  "sample_rate": 24000,
+  "max_text_length": 5000
+}
+```
+
+### Available Voices - `GET /api/tts/voices`
+
+List all available Kokoro voices (16 different voice options across American and British English).
+
+**Response includes:** Voice ID, name, language, gender, and description (if applicable).
+
+### TTS Model Warmup - `POST /api/tts/warmup`
+
+Preload the TTS model into memory to reduce latency on first request (optional optimization).
+
 ### Global Search - `GET /api/search`
 
 Performs fulltext search across all indexed node types (Mystery, Location, TimePeriod, Category).
+
+**Rate Limited:** 60 requests per minute per IP
 
 **Query Parameters:**
 - `q` (string, required): Search query (1-200 characters)
@@ -190,7 +261,135 @@ GET /api/search?q=atlantis&limit=20
 }
 ```
 
+**Error Responses:**
+- `429`: Rate limit exceeded (60/minute)
+- `422`: Validation error (invalid query length or limit range)
+- `503`: Database connection error
+
 Results are sorted by relevance score (highest first). Uses Neo4j fulltext index for efficient searching.
+
+## Backend Configuration
+
+Backend settings are managed through Pydantic Settings in `api/src/config.py` with environment variable support.
+
+### Environment Variables (config.py)
+
+**Core Configuration:**
+- `origin_url`: Frontend URL for CORS (default: http://localhost:3000)
+- `neo4j_uri`: Neo4j connection URI (default: neo4j://localhost:7687)
+- `neo4j_username`: Neo4j username (default: neo4j)
+- `neo4j_password`: Neo4j password (REQUIRED - no default)
+- `neo4j_database`: Database name (default: neo4j)
+- `debug`: Debug mode flag (default: False)
+
+**TTS Service Configuration:**
+- `tts_lang_code`: Language code for Kokoro (default: "b" for British English)
+- `tts_default_voice`: Default voice ID (default: "bm_fable" - Fable narrator)
+- `tts_cache_dir`: Directory for cached audio files (default: ./audio_cache)
+- `tts_sample_rate`: Audio sample rate in Hz (default: 24000)
+- `tts_max_text_length`: Maximum text length for TTS (default: 5000)
+- `tts_lazy_load`: Load model only on first request (default: True)
+- `static_audio_url_prefix`: URL prefix for serving cached audio (default: /static/audio)
+- `tts_cache_ttl_hours`: Cache TTL in hours (default: 168 = 7 days)
+- `tts_cache_max_size_mb`: Maximum cache directory size in MB (default: 1024 = 1GB)
+- `tts_max_workers`: ThreadPoolExecutor max workers for TTS (default: 4)
+
+**Rate Limiting Configuration:**
+- `rate_limit_tts`: TTS endpoint rate limit (default: "10/minute")
+- `rate_limit_search`: Search endpoint rate limit (default: "60/minute")
+- `rate_limit_default`: Default rate limit for other endpoints (default: "100/minute")
+
+All settings support `.env` and `.env.local` files for local development.
+
+## Security Features
+
+### Rate Limiting
+
+Rate limiting is implemented using slowapi with per-IP tracking:
+
+- **TTS Endpoint:** 10 requests per minute (CPU-intensive, limited to prevent resource exhaustion)
+- **Search Endpoint:** 60 requests per minute (normal usage pattern)
+- **Other Endpoints:** 100 requests per minute (default fallback)
+
+Applied via `@limiter.limit(settings.rate_limit_*)` decorators on route handlers. Rate limit config is centralized in Settings for easy adjustment.
+
+### Cache Directory Security
+
+Cache directory validation occurs on startup to prevent directory traversal:
+
+```python
+def validate_cache_directory(cache_path: Path) -> None:
+    """
+    - Ensures cache directory is within application root (no ../.. escapes)
+    - Creates directory with proper permissions if needed
+    - Verifies write access is available
+    """
+```
+
+Located in `/Users/gihunko/projects/white_rabbit/api/src/main.py` (lines 39-71).
+
+### Neo4j Index Verification
+
+On startup, the API verifies the required `globalSearch` fulltext index exists:
+
+```python
+async def verify_search_index(app: FastAPI) -> None:
+    """Check for globalSearch index and fail fast if missing"""
+```
+
+If the index is not found, a `DatabaseIndexError` is raised with hint to run `api/docs/create_fulltext_index.cypher`.
+
+### Input Validation
+
+All API inputs are validated at the Pydantic schema level:
+
+- **TTS Endpoint:** Text length validated (max 5000 characters)
+- **Search Endpoint:** Query length validated (1-200 characters), limit range validated (1-100)
+- Request bodies validated against typed Pydantic models before handler execution
+
+### Thread Pool Bounding
+
+TTS audio generation uses a bounded ThreadPoolExecutor with configurable max_workers:
+
+```python
+_tts_executor = ThreadPoolExecutor(max_workers=settings.tts_max_workers)
+```
+
+Prevents uncontrolled thread creation for CPU-intensive Kokoro model operations.
+
+## TTS Service & Cache Management
+
+### Cache Strategy
+
+TTS audio is cached based on a SHA256 hash of the input text and voice ID:
+
+1. **Cache Lookup:** Check if audio file exists for given text + voice combination
+2. **Cache Hit:** Return existing file with `cached=True` flag
+3. **Cache Miss:** Generate audio via Kokoro, save to cache, return new file with `cached=False`
+
+Cache keys are deterministic, so identical requests reuse cached audio.
+
+### Cache Cleanup
+
+Background cleanup is triggered on each TTS request (`POST /api/tts`):
+
+```python
+async def cleanup_old_cache_files() -> int:
+    """
+    Removes:
+    1. Files older than tts_cache_ttl_hours (default: 7 days)
+    2. Oldest files when total size exceeds tts_cache_max_size_mb (default: 1GB)
+    """
+```
+
+Cleanup is non-blocking and runs asynchronously. Returns count of removed files.
+
+### Cache Storage
+
+- Location: Configured via `tts_cache_dir` (default: `./audio_cache`)
+- Served via FastAPI StaticFiles at `{static_audio_url_prefix}` (default: `/static/audio`)
+- File format: WAV (soundfile library)
+- Naming: Deterministic filenames based on cache key (e.g., `a1b2c3d4e5f6....wav`)
 
 ## Development Patterns
 
@@ -479,3 +678,149 @@ export function DBServerStatus() {
 ```
 
 Configure polling intervals based on use case - health endpoints typically poll every 30-60 seconds to minimize overhead.
+
+## Backend Development Patterns
+
+### Async/Await in FastAPI
+
+All FastAPI route handlers must be async for proper concurrency:
+
+```python
+@router.get("/endpoint")
+async def my_endpoint(request: Request):
+    # Use await for I/O operations
+    result = await some_async_operation()
+    return result
+```
+
+CPU-bound operations should be offloaded to a thread pool using `loop.run_in_executor()`:
+
+```python
+loop = asyncio.get_event_loop()
+result = await loop.run_in_executor(executor, cpu_bound_function)
+```
+
+### Input Validation with Pydantic
+
+All inputs are validated via Pydantic schemas. Query parameters use FastAPI's Query() for validation:
+
+```python
+@router.get("/search")
+async def search(
+    q: str = Query(
+        ...,                    # ... means required
+        min_length=1,
+        max_length=200,
+        description="Search query"
+    ),
+    limit: int = Query(
+        default=10,
+        ge=1,                   # greater than or equal
+        le=100,                 # less than or equal
+        description="Result limit"
+    )
+):
+    # Query parameters are pre-validated before handler runs
+```
+
+Request bodies use Pydantic BaseModel:
+
+```python
+from pydantic import BaseModel
+
+class TTSRequest(BaseModel):
+    mystery_id: str
+    text: str
+    voice_id: str = "default"  # Optional with default
+
+@router.post("/tts")
+async def create_tts(tts_request: TTSRequest):
+    # tts_request is fully validated
+    return await generate_tts_audio(
+        tts_request.mystery_id,
+        tts_request.text,
+        tts_request.voice_id
+    )
+```
+
+### Applying Rate Limits
+
+Use the `@limiter.limit()` decorator to rate limit routes:
+
+```python
+from fastapi import APIRouter, Request
+
+@router.post("/expensive-operation")
+@limiter.limit("10/minute")
+async def expensive_operation(request: Request):
+    # Limited to 10 requests per minute per IP
+    pass
+```
+
+Rate limits are configurable via environment variables (Settings class). Exceeding limits returns 429 Too Many Requests.
+
+### Bounded Thread Pools for CPU Operations
+
+For CPU-intensive work, create a bounded ThreadPoolExecutor at module level:
+
+```python
+from concurrent.futures import ThreadPoolExecutor
+from ..config import settings
+
+# Create once at module load time
+_executor = ThreadPoolExecutor(max_workers=settings.max_workers)
+
+async def cpu_operation():
+    loop = asyncio.get_event_loop()
+    result = await loop.run_in_executor(_executor, blocking_function)
+    return result
+```
+
+This prevents uncontrolled thread explosion from concurrent requests.
+
+### Exception Handling
+
+Custom exceptions should inherit from a base WhiteRabbitException:
+
+```python
+from ..exceptions import WhiteRabbitException
+
+class CustomError(WhiteRabbitException):
+    def __init__(self, message: str, details: dict = None):
+        super().__init__(message=message, details=details)
+```
+
+Exception handlers are registered in main.py with most specific exceptions first:
+
+```python
+app.add_exception_handler(WhiteRabbitException, handler)
+app.add_exception_handler(HTTPException, handler)
+app.add_exception_handler(RequestValidationError, handler)
+app.add_exception_handler(Exception, handler)  # Generic fallback
+```
+
+### Startup and Shutdown
+
+Use the FastAPI lifespan context manager for initialization and cleanup:
+
+```python
+@asynccontextmanager
+async def app_lifespan(app: FastAPI):
+    # Startup tasks
+    logger.info("Starting up...")
+    await initialize_resources()
+
+    yield  # App runs here
+
+    # Shutdown tasks
+    logger.info("Shutting down...")
+    await cleanup_resources()
+
+app = FastAPI(lifespan=app_lifespan)
+```
+
+Critical startup tasks include:
+1. Database connection validation
+2. Cache directory security checks
+3. Index verification
+4. TTS model initialization (or lazy-loading setup)
