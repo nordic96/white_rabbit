@@ -631,7 +631,154 @@ git checkout -b dev_search_optimization
 
 ---
 
-**Document Version:** 2.1
-**Last Updated:** 2026-01-15
-**Source:** Global Search Implementation (Issue #28) + PR #14 Code Review + PR #42 Search API Review + PR #43 Critical Issues Fixes
+---
+
+## Session Learnings - 2026-01-16
+
+### Mistakes & Fixes
+
+- **Issue:** TTS cache cleanup was never executed, leading to unbounded disk usage
+  - **Root Cause:** Cache cleanup logic was defined but never scheduled or triggered by any event
+  - **Fix:** Implemented background cleanup triggered on every TTS request that checks TTL (7 days) and total size (1GB limit)
+  - **Prevention:** When implementing cache, immediately add cleanup logic triggered by requests or use a background task scheduler
+
+- **Issue:** Path traversal vulnerability in TTS cache directory validation
+  - **Root Cause:** No validation that cache file paths stayed within the cache directory; user-supplied filenames could escape with `../`
+  - **Fix:** Added path validation using `Path(cache_dir).resolve()` and comparison to ensure all cached files are within bounds
+  - **Prevention:** Always validate paths with `.resolve()` and check that resolved path is within expected directory before file operations
+
+- **Issue:** TTS service could spawn unlimited threads for concurrent requests
+  - **Root Cause:** No bounds on thread pool executor for CPU-intensive TTS operations
+  - **Fix:** Bounded ThreadPoolExecutor with `max_workers=4` to prevent thread explosion under load
+  - **Prevention:** Always set `max_workers` limit when using ThreadPoolExecutor; test with concurrent requests to verify limits work
+
+- **Issue:** TTS API had no rate limiting, vulnerable to DoS attacks
+  - **Root Cause:** No request throttling implemented for expensive operations
+  - **Fix:** Implemented slowapi Limiter with TTS endpoint limited to 10 requests/minute and search limited to 60 requests/minute
+  - **Prevention:** Add rate limiting to all expensive endpoints; use different limits for different operation costs
+
+- **Issue:** TTS API accepted requests with no length validation
+  - **Root Cause:** No Pydantic validation on TTSRequest input
+  - **Fix:** Added `max_length=5000` validation to text field in TTSRequest schema
+  - **Prevention:** Always validate input sizes at API boundary using Pydantic Field constraints
+
+- **Issue:** Neo4j globalSearch index might not exist on production startup
+  - **Root Cause:** Index was created manually in development; no verification on app startup
+  - **Fix:** Added index existence verification on startup; create index if missing (idempotent operation)
+  - **Prevention:** Always verify critical indices/constraints exist on startup; use idempotent creation queries
+
+### Patterns Discovered
+
+- **Pattern:** Background Cache Cleanup Triggered by Requests
+  - **Context:** Implementing cache with TTL and size limits without external task scheduler
+  - **Implementation:**
+    ```python
+    async def cleanup_tts_cache():
+        now = time.time()
+        cutoff = now - (7 * 24 * 60 * 60)  # 7 days in seconds
+        for file in cache_dir.glob("*.wav"):
+            if file.stat().st_mtime < cutoff:
+                file.unlink()
+
+    # Call cleanup on every TTS request
+    @app.post("/tts")
+    async def text_to_speech(request: TTSRequest):
+        await cleanup_tts_cache()  # Lightweight check
+        # ... rest of handler
+    ```
+  - **Key Detail:** Cleanup should be lightweight and async; run at request time rather than blocking startup
+
+- **Pattern:** Path Traversal Prevention with resolve()
+  - **Context:** Ensuring uploaded/derived file paths cannot escape intended directory
+  - **Implementation:**
+    ```python
+    cache_dir = Path(settings.tts_cache_dir).resolve()
+    file_path = cache_dir / filename
+
+    # Verify file is within cache directory
+    if not str(file_path.resolve()).startswith(str(cache_dir)):
+        raise ValueError("Invalid cache path")
+    ```
+  - **Key Detail:** Use `.resolve()` to eliminate `..` and symlinks; compare string representations after resolution
+
+- **Pattern:** Rate Limiting with slowapi for FastAPI
+  - **Context:** Protecting expensive endpoints from DoS attacks
+  - **Implementation:**
+    ```python
+    from slowapi import Limiter
+    from slowapi.util import get_remote_address
+
+    limiter = Limiter(key_func=get_remote_address)
+    app.state.limiter = limiter
+
+    @app.post("/tts")
+    @limiter.limit("10/minute")
+    async def text_to_speech(request: TTSRequest, _: Request):
+        # ...
+    ```
+  - **Key Detail:** Limiter counts per IP address by default; use rate strings like "10/minute", "100/hour"
+
+- **Pattern:** Bounding Thread Pool for CPU-Intensive Operations
+  - **Context:** Preventing thread explosion when running TTS (CPU-bound) in thread pool
+  - **Implementation:**
+    ```python
+    executor = ThreadPoolExecutor(max_workers=4)
+    loop = asyncio.get_event_loop()
+
+    # In async handler
+    result = await loop.run_in_executor(executor, cpu_intensive_function, args)
+    ```
+  - **Key Detail:** Rule of thumb: `max_workers = cpu_count` for CPU-bound; 2-4x for I/O-bound; TTS (CPU-bound) should be low
+
+- **Pattern:** Pydantic Input Validation with Field Constraints
+  - **Context:** Validating request body parameters at API boundary before processing
+  - **Implementation:**
+    ```python
+    from pydantic import BaseModel, Field
+
+    class TTSRequest(BaseModel):
+        text: str = Field(max_length=5000)
+        voice: str = Field(default="default")
+    ```
+  - **Key Detail:** Pydantic automatically returns 422 with validation errors; no manual checks needed
+
+- **Pattern:** Idempotent Index Creation on Startup
+  - **Context:** Ensuring Neo4j indices exist without failing if already created
+  - **Implementation:**
+    ```python
+    # Idempotent: safe to run multiple times
+    query = "CREATE FULLTEXT INDEX IF NOT EXISTS globalSearch FOR (...)"
+    await session.run(query)
+    ```
+  - **Key Detail:** Use `IF NOT EXISTS` clause; verification queries are fast and prevent crashes
+
+### Debugging Wins
+
+- **Problem:** False positive error response field issue (#7)
+  - **Approach:** Examined frontend ApiError class to understand how status_code field was handled
+  - **Tool/Technique:** Read TypeScript type definition in `utils/api.ts` to see status_code was renamed to statusCode during mapping
+  - **Insight:** The "error" was not a bug; frontend's ApiError class correctly maps snake_case to camelCase via constructor. Problem was misunderstanding frontend data transformation logic
+
+- **Problem:** TTS requests failing intermittently under load
+  - **Approach:** Checked for resource exhaustion by monitoring thread count and identifying unbounded thread creation
+  - **Tool/Technique:** Added logging to track concurrent requests and observed thread pool growth; added `max_workers` limit and verified with load test
+
+- **Problem:** Cache disk usage growing unbounded
+  - **Approach:** Identified no cleanup mechanism was in place; verified cache directory size
+  - **Tool/Technique:** Added file stat checking with TTL logic; implemented background cleanup triggered on requests
+
+### Performance Notes
+
+- TTS rate limiting (10/min) prevents DOS while allowing typical user interaction (1-2 requests per user session)
+- ThreadPoolExecutor with max_workers=4 prevents thread context switching overhead; TTS is CPU-bound so low worker count is optimal
+- Cache cleanup triggered on requests is efficient; checking old files (TTL > 7 days) has minimal overhead
+- Index existence check on startup is fast (single metadata query) and idempotent; safe to run on every startup
+- Input length validation (5000 chars) prevents TTS model from processing excessively long requests
+- Rate limiting at 60/min for search is permissive for legitimate use; TTS at 10/min is conservative given CPU cost
+
+---
+
+**Document Version:** 2.2
+**Last Updated:** 2026-01-16
+**Source:** PR #44 (UI Theme Fixes) + PR #46 (TTS Cache/Security/Rate Limiting) + PR Review False Positive Investigation
 **Maintainer:** Claude Code Backend Agent

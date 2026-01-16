@@ -19,7 +19,7 @@ export default function FilterHeader({
     <div
       className={cn('sticky top-0 z-40 p-4', {
         'bg-category-yellow text-dark-gray': type === 'Category',
-        'bg-location-pink text-white': type === 'Location',
+        'bg-location-pink text-dark-gray': type === 'Location',
         'bg-time-period-skyblue text-dark-gray': type === 'Time Period',
       })}
     >

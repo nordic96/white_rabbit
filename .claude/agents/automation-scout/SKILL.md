@@ -375,6 +375,239 @@ This document captures best practices for identifying automation opportunities i
 
 ---
 
-**Document Version:** 2.0
-**Last Updated:** 2026-01-15
-**Source:** Health Check Implementation Session + FastAPI Search Implementation + Agent Directory Restructuring + PR Review & Refactoring Session (PR #42, #43)
+## Automation Opportunities - 2026-01-16
+
+### Patterns Identified for Automation
+
+#### 1. Styling Refactoring Pattern (Dark Mode Removal/Theme Updates)
+
+**Repetitive Tasks Observed:**
+- Used Grep to find all files with `dark:` prefixes across 10+ components
+- Manually removed dark: prefixes one file at a time
+- Updated color values to match theme specification
+- Process required: search → identify → edit → verify across all affected files
+
+**Current Implementation:**
+1. Run Grep query to find pattern (e.g., `dark:` or specific class patterns)
+2. Identify files that need updates
+3. Manually open each file and remove/update classes
+4. Verify changes don't break styling
+5. Test visual appearance after changes
+6. Repeat for next pattern
+
+**Opportunities:**
+
+- **`/find-styling-candidates`** (Medium Impact)
+  - **Purpose:** Identify all files containing specific styling patterns that need refactoring
+  - **Trigger:** When planning theme updates, dark mode removal, or class migration
+  - **Input:** Styling pattern to find (e.g., "dark:", "old-color-", "deprecated-class"), target directory (optional)
+  - **Output:** Organized list of files with line numbers and context showing pattern locations
+  - **Benefit:** Eliminates manual grep iterations, provides complete inventory of affected files, enables bulk refactoring planning
+  - **Complexity:** Low
+
+- **`/apply-styling-refactor`** (High Impact)
+  - **Purpose:** Automated batch refactoring of styling patterns across multiple files
+  - **Trigger:** After identifying styling patterns that need bulk updates
+  - **Input:** Styling pattern, replacement pattern/value, file list (or glob pattern), dry-run option
+  - **Output:** Refactored files with clear changelog showing what was updated in each
+  - **Benefit:** Reduces manual file edits from 30+ minutes to 2-3 minutes, prevents inconsistent refactoring, tracks changes clearly
+  - **Complexity:** Medium
+
+#### 2. Security/Performance Enhancement Pattern (Input Validation, Rate Limiting, Cache Cleanup)
+
+**Repetitive Tasks Observed:**
+- Added rate limiting to multiple endpoints following identical pattern
+- Added input validation to multiple schemas with similar validation rules
+- Added cache cleanup mechanisms following same pattern
+- Each addition required: identifying endpoints → writing validation/limiting code → testing with invalid inputs
+- Code patterns were nearly identical across different endpoints with minor naming differences
+
+**Current Implementation:**
+1. Identify endpoint that needs enhancement (validation/rate limiting/cache cleanup)
+2. Research correct implementation pattern from existing code
+3. Manually write validation/limiting/cleanup code
+4. Add appropriate error handling
+5. Test with edge cases (null, empty, oversized, etc.)
+6. Repeat for next endpoint
+
+**Opportunities:**
+
+- **`/add-rate-limiting`** (Medium Impact)
+  - **Purpose:** Add rate limiting configuration to an API endpoint
+  - **Trigger:** When creating new endpoint or hardening existing endpoint against abuse
+  - **Input:** API route file path, rate limit (requests per window), time window (seconds)
+  - **Output:** Updated endpoint with rate limiting middleware and proper error response
+  - **Benefit:** Standardizes rate limiting across API, prevents duplicate implementation logic, ensures consistent abuse protection
+  - **Complexity:** Medium
+
+- **`/add-input-validation`** (High Impact)
+  - **Purpose:** Add comprehensive input validation to API endpoint schemas
+  - **Trigger:** When creating new endpoint or during security hardening review
+  - **Input:** API route file path, parameter definitions with validation rules (min/max length, type, pattern, etc.)
+  - **Output:** Updated endpoint with validation logic and structured error responses
+  - **Benefit:** Prevents malformed requests from reaching application logic, ensures data integrity, reduces error handling code in endpoints
+  - **Complexity:** Medium
+
+- **`/add-cache-cleanup`** (Low Impact)
+  - **Purpose:** Add cache eviction/cleanup mechanism to endpoints
+  - **Trigger:** When implementing caching for data that changes
+  - **Input:** Cache key pattern, eviction strategy (TTL, LRU, immediate invalidation trigger)
+  - **Output:** Updated endpoint/service with cache cleanup logic
+  - **Benefit:** Prevents stale data from being served, reduces memory bloat from cache accumulation
+  - **Complexity:** Low
+
+- **`/security-hardening-checklist`** (Medium Impact)
+  - **Purpose:** Review endpoint for common security issues: missing validation, missing rate limiting, missing cache cleanup, insecure error messages
+  - **Trigger:** Before PR submission or during security review phase
+  - **Input:** API endpoint file paths (or scan directory)
+  - **Output:** Report of security gaps with recommendations and code suggestions
+  - **Benefit:** Prevents security vulnerabilities from reaching production, ensures consistent security posture
+  - **Complexity:** Medium
+
+#### 3. PR Review Workflow Optimization
+
+**Repetitive Tasks Observed:**
+- Read PR review comments from Claude
+- Manually identified critical vs high priority issues
+- Created branch for fixes
+- Applied fixes to multiple files
+- Committed and pushed changes
+- Created PR with fixes
+- Process involved multiple sequential steps with decision points
+
+**Current Implementation:**
+1. Check PR review feedback (via gh pr view or comments)
+2. Read through all feedback manually
+3. Categorize issues by priority (critical, high, medium)
+4. Create feature branch for fixes
+5. Apply fixes one category at a time
+6. Commit with descriptive messages per category
+7. Push and create new PR
+8. Verify feedback was addressed
+
+**Opportunities:**
+
+- **`/batch-apply-code-fixes`** (Medium Impact)
+  - **Purpose:** Apply a series of related code fixes from review feedback in single workflow
+  - **Trigger:** After extracting issues from PR review
+  - **Input:** Issue list with file locations and expected changes, branch name for commits
+  - **Output:** Branch with organized commits per issue category, summary of changes
+  - **Benefit:** Reduces manual file jumping between fixes, creates organized commit history by category, ensures no feedback missed
+  - **Complexity:** Medium
+
+- **`/generate-commit-message`** (Low Impact)
+  - **Purpose:** Generate clear, descriptive commit messages from code changes
+  - **Trigger:** After making fixes or refactoring
+  - **Input:** Changed files (staged or unstaged), optional context/issue category
+  - **Output:** Suggested commit message(s) in conventional format
+  - **Benefit:** Ensures consistent commit message quality, faster commit creation
+  - **Complexity:** Low
+
+### Workflow Improvement Opportunities
+
+#### Current: Manual Styling Refactoring
+```
+1. Run Grep to find pattern
+2. Open first file
+3. Remove/update classes manually
+4. Save and test
+5. Repeat for next file (10+ files)
+6. Spot-check for consistency
+```
+**Estimated Time:** 20-30 minutes for 10+ files
+
+**Proposed:** `/find-styling-candidates` + `/apply-styling-refactor`
+```
+1. Run find-styling-candidates with pattern
+2. Review output to understand scope
+3. Run apply-styling-refactor with pattern + replacement
+4. Spot-check results
+5. Commit changes
+```
+**Estimated Time:** 3-5 minutes for 10+ files
+**Benefit:** 75% time reduction, eliminates manual inconsistency errors, maintains clear change history
+
+#### Current: Manual Security Hardening
+```
+1. Open endpoint file
+2. Add validation schema manually
+3. Write validation logic
+4. Add rate limiting headers
+5. Add error handling
+6. Test with invalid inputs
+7. Repeat for next endpoint
+```
+**Estimated Time:** 15-20 minutes per endpoint
+
+**Proposed:** `/security-hardening-checklist` + `/add-input-validation` + `/add-rate-limiting`
+```
+1. Run security-hardening-checklist on endpoints
+2. Review report of gaps
+3. Run add-input-validation for parameters
+4. Run add-rate-limiting for abuse protection
+5. Review generated code
+6. Test key scenarios
+```
+**Estimated Time:** 5-8 minutes per endpoint
+**Benefit:** 60% time reduction, consistent security posture, prevents missed hardening steps
+
+#### Current: Sequential PR Fix Application
+```
+1. Read all feedback
+2. Manually categorize issues
+3. Create branch
+4. Fix critical issues one by one
+5. Commit after each group
+6. Fix high priority issues
+7. Repeat for lower priorities
+8. Verify all addressed
+```
+**Estimated Time:** 15-25 minutes per PR
+
+**Proposed:** `/batch-apply-code-fixes` with organized issue list
+```
+1. Extract issues from feedback to structured list
+2. Run batch-apply-code-fixes with priority grouping
+3. Review generated commits
+4. Verify fixes against original feedback
+```
+**Estimated Time:** 5-10 minutes per PR
+**Benefit:** 50% time reduction, organized commit history, no missed feedback items
+
+### Agent Ideas
+
+- **Agent Name:** style-refactoring-bot
+  - **Specialization:** Identify and apply bulk styling refactoring across codebase
+  - **Tools Needed:** Glob, Grep, Read, Edit, output analysis
+  - **Use Case:** Theme migration, dark mode removal, CSS class standardization, color value updates
+  - **Output:** Refactored components with clear changelog + verification report
+
+- **Agent Name:** security-hardener
+  - **Specialization:** Identify security gaps and apply hardening measures to endpoints
+  - **Tools Needed:** Glob, Grep, Read, Edit, AST parsing
+  - **Use Case:** Pre-PR security review, systematic endpoint hardening, preventing vulnerabilities
+  - **Output:** Security report + code suggestions + refactored endpoints with validation/rate limiting
+
+- **Agent Name:** pr-fix-applier
+  - **Specialization:** Batch apply code fixes from PR review feedback with organized commits
+  - **Tools Needed:** Glob, Grep, Read, Edit, Bash (git operations)
+  - **Use Case:** Efficiently addressing PR feedback with clean commit history
+  - **Output:** Feature branch with organized commits per issue category + summary report
+
+### Commands Not Yet Suggested But Could Be Useful
+
+- **`/audit-styling`** - Full codebase styling audit identifying deprecated classes, inconsistent patterns, theme violations
+- **`/endpoint-security-audit`** - Scan all API endpoints for missing validation, rate limiting, error handling consistency
+- **`/commit-message-linter`** - Validate commit messages follow conventional format
+
+### Connections to Existing Automations
+
+- Relates to existing `/pre-submit-review` concept (could combine into unified code quality check)
+- Complements existing `/review-pr-feedback` (this provides tools to apply the feedback)
+- Different from `/apply-utility-refactoring` (which focuses on code patterns) but similar pattern
+
+---
+
+**Document Version:** 2.1
+**Last Updated:** 2026-01-16
+**Source:** PR Review Processing + UI Cleanup + Security/Performance Hardening Session
