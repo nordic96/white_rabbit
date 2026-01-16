@@ -84,3 +84,16 @@ class TextTooLongError(WhiteRabbitException):
     def __init__(self, text_length: int, max_length: int, details: Optional[Dict[str, Any]] = None):
         message = f"Text length ({text_length}) exceeds maximum allowed length ({max_length})"
         super().__init__(message=message, status_code=400, details=details)
+
+
+class DatabaseIndexError(WhiteRabbitException):
+    """Raised when a required database index is missing."""
+    def __init__(self, index_name: str, details: Optional[Dict[str, Any]] = None):
+        message = f"Required database index '{index_name}' not found. Please run the index creation script."
+        super().__init__(message=message, status_code=503, details=details)
+
+
+class CacheDirectoryError(WhiteRabbitException):
+    """Raised when cache directory is invalid or inaccessible."""
+    def __init__(self, message: str = "Cache directory error", details: Optional[Dict[str, Any]] = None):
+        super().__init__(message=message, status_code=500, details=details)
