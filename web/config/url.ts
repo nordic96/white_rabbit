@@ -11,3 +11,5 @@ export const API_URL = (() => {
 // In production, this should point to GitHub Pages or CDN URL
 export const AUDIO_BASE_URL =
   process.env.NEXT_PUBLIC_AUDIO_BASE_URL || '/api/audio';
+
+export const API_KEY = process.env.API_KEY || '';

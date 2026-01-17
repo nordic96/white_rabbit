@@ -1,5 +1,6 @@
-import { API_URL } from '@/config';
+import { API_KEY, API_URL } from '@/config';
 import { MysteryDetail } from '@/types';
+import { fetchApi } from '@/utils';
 import { NextResponse } from 'next/server';
 
 export async function GET(
@@ -18,20 +19,21 @@ export async function GET(
   const timeoutId = setTimeout(() => controller.abort(), 5000);
 
   try {
-    const res = await fetch(`${API_URL}/api/mysteries/${id}`, {
-      signal: controller.signal,
-    });
+    const res = await fetchApi<MysteryDetail>(
+      `${API_URL}/api/mysteries/${id}`,
+      {
+        signal: controller.signal,
+        headers: {
+          'X-API-Key': API_KEY,
+        },
+      },
+    );
     clearTimeout(timeoutId);
 
     if (!res.ok) {
-      const errorData = await res
-        .json()
-        .catch(() => ({ error: 'Unknown error' }));
-
-      return NextResponse.json(errorData, { status: res.status });
+      return NextResponse.json(res.error, { status: res.error.statusCode });
     }
-    const data: MysteryDetail = await res.json();
-    return NextResponse.json(data);
+    return NextResponse.json(res.data);
   } catch (e) {
     clearTimeout(timeoutId);
 

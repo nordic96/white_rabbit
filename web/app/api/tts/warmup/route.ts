@@ -1,4 +1,4 @@
-import { API_URL } from '@/config';
+import { API_KEY, API_URL } from '@/config';
 import { TTSWarmupResponse } from '@/types';
 import { fetchApi } from '@/utils';
 import { NextResponse } from 'next/server';
@@ -12,6 +12,9 @@ export async function GET(): Promise<NextResponse> {
     const res = await fetchApi<TTSWarmupResponse>(url, {
       method: 'POST',
       signal: controller.signal,
+      headers: {
+        'X-API-Key': API_KEY,
+      },
     });
 
     if (!res.ok) {

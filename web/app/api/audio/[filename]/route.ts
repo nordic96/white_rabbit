@@ -1,4 +1,5 @@
-import { API_URL } from '@/config';
+import { API_KEY, API_URL } from '@/config';
+import { fetchApi } from '@/utils';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
@@ -15,17 +16,22 @@ export async function GET(
   try {
     // Fetch audio from backend
     const backendUrl = `${API_URL}/static/audio/${filename}`;
-    const response = await fetch(backendUrl);
+    const response = await fetchApi(backendUrl, {
+      headers: {
+        'X-API-Key': API_KEY,
+      },
+    });
 
     if (!response.ok) {
       return NextResponse.json(
-        { error: 'Audio not found' },
-        { status: response.status },
+        { error: response.error },
+        { status: response.error.statusCode },
       );
     }
 
     // Stream the audio back to client
-    const audioBuffer = await response.arrayBuffer();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const audioBuffer = (response.data as any).arrayBuffer();
 
     return new NextResponse(audioBuffer, {
       headers: {
