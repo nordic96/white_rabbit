@@ -13,6 +13,21 @@ interface LoadingSpinnerProps {
 const MAX_DOTS = 5;
 const DOT_INTERVAL_MS = 600;
 
+const SIZE_STYLES = {
+  lg: {
+    spinner: 'h-24 w-24 max-sm:h-16 max-sm:w-16 border-b-8 border-r-8',
+    text: 'text-lg max-sm:text-sm',
+  },
+  md: {
+    spinner: 'h-16 w-16 max-sm:h-12 max-sm:w-12 border-b-6 border-r-6',
+    text: 'text-base max-sm:text-sm',
+  },
+  sm: {
+    spinner: 'h-8 w-8 max-sm:h-4 max-sm:w-4 border-b-4 border-r-4',
+    text: 'text-sm max-sm:text-xs',
+  },
+} as const;
+
 export default function LoadingSpinner({
   message = 'Loading',
   size = 'lg',
@@ -43,23 +58,10 @@ export default function LoadingSpinner({
         aria-hidden="true"
         className={cn(
           'animate-spin rounded-full border-mystery-purple mx-auto mb-4',
-          {
-            'h-24 w-24 max-sm:h-16 max-sm:w-16 border-b-8 border-r-8':
-              size === 'lg',
-            'h-16 w-16 max-sm:h-12 max-sm:w-12 border-b-6 border-r-6':
-              size === 'md',
-            'h-8 w-8 max-sm:h-4 max-sm:w-4 border-b-4 border-r-4':
-              size === 'sm',
-          },
+          SIZE_STYLES[size].spinner,
         )}
       />
-      <p
-        className={cn({
-          'text-lg max-sm:text-sm': size === 'lg',
-          'text-base max-sm:text-sm': size === 'md',
-          'text-sm max-sm:text-xs': size === 'sm',
-        })}
-      >
+      <p className={SIZE_STYLES[size].text}>
         {message}
         {'.'.repeat(dots)}
       </p>
