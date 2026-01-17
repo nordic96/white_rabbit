@@ -1,4 +1,3 @@
-import { API_KEY } from '@/config';
 import type { ErrorResponse } from '@/types/errorResponse';
 import { URL } from 'url';
 
@@ -166,6 +165,7 @@ export async function fetchApi<T>(
   options?: RequestInit,
 ): Promise<ApiResponse<T>> {
   try {
+    const API_KEY = process.env.API_KEY;
     const response = await fetch(url, {
       ...options,
       headers: {

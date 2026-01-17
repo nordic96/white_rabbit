@@ -1,4 +1,4 @@
-import { API_KEY, API_URL } from '@/config';
+import { API_URL } from '@/config';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
@@ -13,6 +13,7 @@ export async function GET(
   }
 
   try {
+    const API_KEY = process.env.API_KEY || '';
     // Fetch audio from backend using native fetch for binary data
     const backendUrl = `${API_URL}/static/audio/${filename}`;
     const response = await fetch(backendUrl, {
