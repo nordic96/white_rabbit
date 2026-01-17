@@ -1,15 +1,43 @@
 """
 Middleware for request/response logging and error handling.
 """
-from fastapi import Request, Response
+from fastapi import Request, Response, Security, HTTPException, status
+from fastapi.security import APIKeyHeader
+
 from starlette.middleware.base import BaseHTTPMiddleware
+
+from .config import settings
 from typing import Callable
 import logging
 import time
 import uuid
 
-logger = logging.getLogger(__name__)
 
+logger = logging.getLogger(__name__)
+API_KEY_HEADER = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+async def verify_api_key(api_key: str = Security(API_KEY_HEADER)) -> str:
+    """Verifiy if API Key is provided from the request header
+
+    Args:
+        api_key (str, optional): api key from request header. Defaults to Security(API_KEY_HEADER).
+
+    Returns:
+        str: the actual api_key from input
+    """
+    if api_key is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing API key, Include 'X-API-Key' header."
+        )
+    
+    if api_key != settings.api_key:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid API Key",
+        )
+    
+    return api_key
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
     """

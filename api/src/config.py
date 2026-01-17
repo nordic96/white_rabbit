@@ -7,6 +7,10 @@ class Settings(BaseSettings):
     neo4j_password: str  # No default - must be set explicitly
     neo4j_database: str = "neo4j"
     debug: bool = False
+    
+    # API Keys
+    api_key: str = ""
+    api_key_required: bool = False
 
     # TTS Configuration
     tts_enabled: bool = True  # Set to False in production to disable TTS generation

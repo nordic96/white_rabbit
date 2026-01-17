@@ -7,12 +7,14 @@ This module provides endpoints for:
 - Model warmup
 - Available voices listing
 """
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Depends
 from typing import Dict, Any
 import logging
 
 from slowapi import Limiter
 from slowapi.util import get_remote_address
+
+from ..middleware import verify_api_key
 
 from ..schemas.tts import TTSRequest, TTSResponse
 from ..services.tts_service import generate_tts_audio, cleanup_old_cache_files
@@ -28,7 +30,8 @@ limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter(
     prefix="/api/tts",
-    tags=["text-to-speech"]
+    tags=["text-to-speech"],
+    dependencies=[Depends(verify_api_key)] if settings.api_key_required else []
 )
 
 
