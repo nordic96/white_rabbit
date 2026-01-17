@@ -782,3 +782,114 @@ git checkout -b dev_search_optimization
 **Last Updated:** 2026-01-16
 **Source:** PR #44 (UI Theme Fixes) + PR #46 (TTS Cache/Security/Rate Limiting) + PR Review False Positive Investigation
 **Maintainer:** Claude Code Backend Agent
+
+---
+
+## Session Learnings - 2026-01-17 (Deployment Strategy & Configuration)
+
+### Mistakes & Fixes
+
+- **Issue:** Attempting to deploy large ML models (Kokoro TTS) to serverless platform
+  - **Root Cause:** Underestimated serverless function limitations (250MB package size limit, 10-60s timeouts, no persistent connections)
+  - **Fix:** Designed pre-generated audio strategy: generate audio locally, store in GitHub Pages as CDN, toggle TTS_ENABLED=false in production, return cached URLs
+  - **Prevention:** Research platform constraints (Vercel, Lambda, CloudFlare) before designing backend architecture; serverless unsuitable for large models or long-running operations
+
+- **Issue:** TTS model initialization taking too long in production environment
+  - **Root Cause:** Model loading happens at request time in serverless cold starts (10-30s overhead)
+  - **Fix:** Switched to pre-computed audio files served from static CDN; initialization only occurs in local development
+  - **Prevention:** For heavy computations, pre-process offline and serve results; avoid re-computing in production endpoints
+
+- **Issue:** Neo4j connection pooling incompatible with serverless architecture
+  - **Root Cause:** Serverless functions have ephemeral execution contexts; connection pools expect persistent lifetime
+  - **Fix:** Recognized this as architectural limitation; connection pooling remains for Python backend (non-serverless), replaced with simple stateless connections for serverless edge functions if needed
+  - **Prevention:** Understand execution model of target platform; persistent resources like connection pools require long-lived processes
+
+### Patterns Discovered
+
+- **Pattern:** Environment-Based Feature Toggles for Deployment Flexibility
+  - **Context:** Disabling expensive operations (TTS model loading) in production while keeping code intact for development
+  - **Implementation:**
+    ```python
+    # Backend settings
+    TTS_ENABLED: bool = Field(default=True, description="Enable TTS synthesis (disable for serverless)")
+    AUDIO_BASE_URL: str = Field(default="http://localhost:3000/audio", description="CDN base URL for pre-generated audio")
+
+    # Frontend settings (NEXT_PUBLIC_ prefix makes them available in browser)
+    NEXT_PUBLIC_AUDIO_BASE_URL=https://cdn.example.com/audio
+    ```
+  - **Key Detail:** Toggle feature at config boundary, not in code paths; allows same codebase for dev and prod
+
+- **Pattern:** Pre-Generated Audio with Static CDN Strategy
+  - **Context:** Serving TTS audio without running expensive ML inference on every request
+  - **Implementation:**
+    1. Generate audio files locally during development: `python scripts/generate_audio.py`
+    2. Upload to GitHub Pages or similar static CDN
+    3. Backend returns pre-computed URLs: `GET /mystery/{id}` returns `{ ..., audio_url: "https://cdn/mystery-123.wav" }`
+    4. Toggle `TTS_ENABLED=false` in production; skip model initialization
+    5. Frontend plays audio from URL without waiting for synthesis
+  - **Key Detail:** Moves compute cost from request time (10-30s cold start) to deployment time (once per release); supports serverless deployment
+
+- **Pattern:** Multi-Layer Configuration with Environment Fallbacks
+  - **Context:** Supporting different deployment environments (local, staging, production) with appropriate defaults
+  - **Implementation:**
+    ```python
+    from pydantic_settings import BaseSettings
+
+    class Settings(BaseSettings):
+        tts_enabled: bool = True  # Default for local development
+        audio_base_url: str = "http://localhost:3000/audio"  # Local dev fallback
+
+        model_config = SettingsConfigDict(
+            env_file=[".env.production", ".env.local", ".env"]
+        )
+    ```
+  - **Key Detail:** Load config files in priority order (most specific first); fall back to defaults; allows per-environment overrides without code changes
+
+- **Pattern:** Serverless Limitations Checklist for Architecture Decision
+  - **Context:** Evaluating whether serverless is appropriate for new features
+  - **Key Constraints to Verify:**
+    - Function size: Kokoro model alone is 2GB+ (exceeds 250MB limit)
+    - Timeout: TTS inference takes 30-60s (exceeds 60s limit)
+    - Connection persistence: Neo4j pools require persistent TCP (incompatible with ephemeral execution)
+    - Cold starts: Lambda/Vercel cold start adds 5-10s overhead per idle period
+    - Memory: Large models need 1-2GB RAM minimum
+  - **Decision:** Pre-compute/cache results for serverless; use persistent backend (Python FastAPI on Heroku/Railway) for stateful operations
+
+### Debugging Wins
+
+- **Problem:** Understanding Vercel deployment limitations for Python backend
+  - **Approach:** Researched Vercel documentation and tested function size limits; identified Kokoro model was 2GB (8x too large)
+  - **Tool/Technique:** Examined package contents and compiled size; read official Vercel docs on max_function_size and timeout configurations
+
+- **Problem:** Recognizing architectural mismatch between requirements and platform
+  - **Approach:** Traced execution flow (cold start → model load → inference) and mapped to platform constraints (timeout, size, ephemeral execution)
+  - **Tool/Technique:** Created timeline document showing why serverless incompatible; proposed alternative architecture (pre-generation + CDN)
+
+- **Problem:** Understanding how to maintain feature in code without expensive runtime cost
+  - **Approach:** Designed toggle pattern (TTS_ENABLED) allowing same codebase to work in dev (with inference) and prod (with pre-generated files)
+  - **Tool/Technique:** Configuration pattern allows feature complete in development; disabled in production via environment toggle
+
+### Performance Notes
+
+- Pre-generated audio eliminates 30-60s TTS inference from request path; response time drops from 40-70s to <200ms
+- Static CDN serving audio (GitHub Pages, CloudFlare) provides global edge caching; reduces bandwidth costs vs. streaming from backend
+- Feature toggle approach allows local testing of full TTS pipeline without paying production costs; developers test inference locally before pushing
+- Configuration pattern scales to other expensive operations (image generation, video processing, complex analytics) with same pre-generation + CDN approach
+
+### Architecture Insights
+
+- **Serverless vs. Persistent Backend Trade-offs:**
+  - Serverless: Stateless, auto-scaling, pay-per-request (good for APIs with variable load, short operations)
+  - Persistent (Heroku, Railway): Runs continuously, connection pooling, persistent state (good for long operations, real-time features, database pooling)
+  - White Rabbit: Hybrid approach appropriate:
+    - Persistent Python backend for Neo4j operations (connection pooling, complex queries)
+    - Serverless Next.js frontend for HTTP scaling
+    - Pre-generated content in static CDN for expensive offline computation (TTS)
+
+- **When to Pre-Compute:**
+  - Operation cost > Request timeout OR
+  - Operation size > Serverless package limit OR
+  - Result cacheable for many users
+  - Examples: TTS, image generation, complex report generation, data preprocessing
+
+---

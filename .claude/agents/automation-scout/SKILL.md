@@ -608,6 +608,256 @@ This document captures best practices for identifying automation opportunities i
 
 ---
 
-**Document Version:** 2.1
-**Last Updated:** 2026-01-16
-**Source:** PR Review Processing + UI Cleanup + Security/Performance Hardening Session
+---
+
+## Automation Opportunities - 2026-01-17
+
+### Patterns Identified for Automation
+
+#### 1. Batch Deployment Configuration Pattern (Vercel Setup)
+
+**Repetitive Tasks Observed:**
+- Created identical vercel.json configuration files for both api/ and web/ directories
+- Each required manual creation of build/framework settings with correct src/dest mappings
+- Pattern: vercel.json for FastAPI backend (Python build, route routing) + vercel.json for Next.js frontend (framework config)
+- Would be needed for each new monorepo service added (new FastAPI service, additional Next.js app, etc.)
+
+**Current Implementation:**
+1. Create `/api/vercel.json` with Python builder and route mappings
+2. Create `/web/vercel.json` with Next.js framework and build settings
+3. Manually configure build and route rules for each service
+4. Test deployment on Vercel
+
+**Opportunities:**
+
+- **`/init-vercel-config`** (Low Impact)
+  - **Purpose:** Generate appropriate vercel.json for a given service type
+  - **Trigger:** When adding new service directory or deploying to Vercel
+  - **Input:** Service directory path, service type (nextjs, python, node, etc.), build command (optional)
+  - **Output:** Pre-configured vercel.json ready for Vercel deployment
+  - **Benefit:** Prevents configuration typos, ensures consistent Vercel setup across services
+  - **Complexity:** Low
+
+#### 2. Batch Audio Asset Generation & CDN Integration Pattern
+
+**Repetitive Tasks Observed:**
+- Created Python script (generate_audio.py) to batch-generate audio files from JSON quote data
+- Script follows pattern: load data → process items → save outputs
+- Environment-based config switching (TTS_ENABLED toggle, AUDIO_BASE_URL for CDN)
+- Multi-stage workflow: generate locally → upload to GitHub Pages/CDN → update environment variables → disable TTS in production
+- Similar pattern will be needed for other bulk asset generation (thumbnails, transcripts, metadata generation, etc.)
+
+**Current Implementation:**
+1. Create script that loads data from source (JSON, database)
+2. Iterate through items, processing each with TTS/ML model
+3. Save outputs to directory
+4. Manual instructions for uploading and configuring CDN
+5. Manual environment variable updates
+
+**Opportunities:**
+
+- **`/scaffold-batch-processor`** (Medium Impact)
+  - **Purpose:** Generate batch processing script template for data transformation pipelines
+  - **Trigger:** When implementing bulk data processing (audio generation, thumbnail creation, transcript generation, etc.)
+  - **Input:** Input data source (JSON file, database query), processing type (TTS, image resize, extraction, etc.), output format/directory
+  - **Output:** Templated Python script with proper error handling, progress tracking, skip logic for existing files
+  - **Benefit:** Reduces script creation time by 60%, ensures consistent error handling and progress reporting across batch jobs
+  - **Complexity:** Medium
+
+- **`/generate-cdn-upload-instructions`** (Low Impact)
+  - **Purpose:** Generate step-by-step instructions for uploading batch-generated assets to GitHub Pages or CDN
+  - **Trigger:** After batch asset generation completes
+  - **Input:** Asset type (audio, images, etc.), output directory, target CDN (GitHub Pages, AWS S3, Cloudflare, etc.)
+  - **Output:** Structured instructions with commands and environment variable updates needed
+  - **Benefit:** Standardizes asset deployment process, prevents manual errors in CDN setup
+  - **Complexity:** Low
+
+- **`/environment-toggle-generator`** (Low Impact)
+  - **Purpose:** Generate environment variable schema and toggle documentation for production/development switching
+  - **Trigger:** When implementing feature with environment-based switching (e.g., TTS_ENABLED)
+  - **Input:** Feature name, configuration parameters (booleans and string values), environment values per stage
+  - **Output:** .env.example with documentation, configuration schema/Pydantic model, environment toggle documentation
+  - **Benefit:** Ensures consistent environment variable naming, prevents missing environment config entries, documents all toggles
+  - **Complexity:** Low
+
+#### 3. Accessibility Enhancement Pattern (ARIA Attributes)
+
+**Repetitive Tasks Observed:**
+- Added ARIA attributes (aria-label, aria-busy, role) to loading spinner and status components
+- Pattern: identify component needing accessibility → determine appropriate ARIA attributes → add to JSX
+- Same pattern applies to any interactive components (buttons, dialogs, status indicators, etc.)
+- Likely will need accessibility audit and fixes across multiple components as application grows
+
+**Current Implementation:**
+1. Identify component lacking accessibility attributes
+2. Determine appropriate ARIA attributes based on component purpose
+3. Add attributes to JSX elements
+4. Test with screen reader or accessibility checker
+
+**Opportunities:**
+
+- **`/audit-component-accessibility`** (Medium Impact)
+  - **Purpose:** Scan components for missing accessibility attributes and suggest improvements
+  - **Trigger:** During accessibility review, before release, or as part of code quality checks
+  - **Input:** Component directory or file paths
+  - **Output:** Report of accessibility gaps with specific recommendations (missing aria-labels, incomplete role definitions, etc.)
+  - **Benefit:** Identifies accessibility issues systematically, prevents shipping inaccessible components, ensures WCAG compliance
+  - **Complexity:** Medium
+
+- **`/add-aria-attributes`** (Medium Impact)
+  - **Purpose:** Automatically add appropriate ARIA attributes to components based on their type and role
+  - **Trigger:** When creating new interactive component or fixing accessibility issue
+  - **Input:** Component file path, component type (button, spinner, modal, form, etc.)
+  - **Output:** Updated component with appropriate aria-label, aria-busy, role, aria-describedby, etc.
+  - **Benefit:** Ensures consistency in accessibility implementation, reduces manual ARIA attribute decisions
+  - **Complexity:** Medium
+
+#### 4. Issue & PR Template Pattern (GitHub Automation)
+
+**Repetitive Tasks Observed:**
+- Created detailed GitHub issues with structured sections (description, code snippets, architecture diagrams, environment variables, task checklists)
+- Created PRs with structured bodies (summary, architecture, changes, test plan)
+- Both follow consistent formatting patterns with clear sections
+- Manual process each time: create issue/PR → structure sections → add checklist items
+
+**Current Implementation:**
+1. Manually create GitHub issue with structured body
+2. Add sections for description, code snippets, diagrams
+3. Include environment variables if relevant
+4. Add checklist of tasks
+5. Manually create PR with summary/architecture/changes/test plan sections
+
+**Opportunities:**
+
+- **`/create-structured-issue`** (Medium Impact)
+  - **Purpose:** Generate GitHub issue template with pre-structured sections
+  - **Trigger:** When creating new feature/bug/task issue
+  - **Input:** Issue title, issue type (feature/bug/task), description summary, list of task items
+  - **Output:** Formatted GitHub issue body ready for posting (or creates issue directly)
+  - **Benefit:** Ensures consistent issue structure, reduces manual formatting, prevents missing required sections
+  - **Complexity:** Medium
+
+- **`/create-structured-pr`** (Medium Impact)
+  - **Purpose:** Generate GitHub PR body with architecture, changes, and test plan sections
+  - **Trigger:** When creating PR after completing feature work
+  - **Input:** Changed files, commit messages/summary, any architecture changes, test coverage info
+  - **Output:** Formatted GitHub PR body ready for posting with all required sections
+  - **Benefit:** Ensures PRs have complete information for reviewers, reduces back-and-forth for missing context
+  - **Complexity:** Medium
+
+### Workflow Optimization Opportunities
+
+#### Current: Manual Batch Audio Generation & CDN Setup
+```
+1. Create generate_audio.py script manually
+2. Install dependencies
+3. Run script locally to generate .wav files
+4. Manually create GitHub Pages repo or CDN setup
+5. Upload audio files manually
+6. Update AUDIO_BASE_URL environment variable manually
+7. Set TTS_ENABLED=false in production
+8. Test that audio CDN URLs work
+```
+**Estimated Time:** 30-45 minutes for complete setup + deployment
+
+**Proposed:** `/scaffold-batch-processor` + `/generate-cdn-upload-instructions` + `/environment-toggle-generator`
+```
+1. Run scaffold-batch-processor with TTS config
+2. Review generated script template
+3. Run script to generate audio
+4. Run generate-cdn-upload-instructions
+5. Follow generated instructions for CDN upload
+6. Apply environment variables from generated schema
+7. Test
+```
+**Estimated Time:** 10-15 minutes (script generation + execution + environment config)
+**Benefit:** 60% time reduction, consistent error handling, clear documentation for deployment
+
+#### Current: Manual GitHub Issue/PR Creation
+```
+1. Open GitHub issue form
+2. Manually type formatted sections
+3. Add code snippets or diagrams manually
+4. Create checklist items one by one
+5. Verify formatting
+6. Post issue
+7. Repeat for PR with different sections
+```
+**Estimated Time:** 10-15 minutes per issue/PR
+
+**Proposed:** `/create-structured-issue` + `/create-structured-pr`
+```
+1. Provide issue summary and type
+2. Run command to generate formatted issue body
+3. Review and adjust if needed
+4. Post or have command create directly
+5. Use `/create-structured-pr` after feature complete
+```
+**Estimated Time:** 2-3 minutes per issue/PR
+**Benefit:** 70% time reduction, consistent formatting, no missed sections
+
+#### Current: Sequential Accessibility Improvements
+```
+1. Manually identify component needing accessibility fixes
+2. Determine appropriate ARIA attributes
+3. Edit component to add attributes
+4. Test with screen reader
+5. Repeat for next component
+```
+**Estimated Time:** 10-15 minutes per component
+
+**Proposed:** `/audit-component-accessibility` + `/add-aria-attributes`
+```
+1. Run audit-component-accessibility on component directory
+2. Review report of issues
+3. Run add-aria-attributes on specific components
+4. Review generated ARIA attributes
+5. Test selected components
+```
+**Estimated Time:** 2-3 minutes per component
+**Benefit:** Bulk identification of accessibility issues, faster fixes, consistency in ARIA implementation
+
+### Agent Ideas
+
+- **Agent Name:** deployment-configurator
+  - **Specialization:** Generate deployment configurations (vercel.json, docker files, environment schemas)
+  - **Tools Needed:** Read, Glob, Edit
+  - **Use Case:** Setting up services for Vercel, Docker, or other platforms; ensuring correct build and routing configuration
+  - **Output:** Pre-configured deployment files ready for the target platform
+
+- **Agent Name:** batch-processor-generator
+  - **Specialization:** Generate batch data processing scripts (audio generation, thumbnail creation, metadata extraction, etc.)
+  - **Tools Needed:** Read, Glob, Edit, template system
+  - **Use Case:** Bulk asset generation, data transformation pipelines, batch cleanup/migration scripts
+  - **Output:** Templated Python script with error handling, progress tracking, and skip logic
+
+- **Agent Name:** accessibility-auditor
+  - **Specialization:** Audit components for accessibility gaps and suggest ARIA attribute improvements
+  - **Tools Needed:** Glob, Grep, Read, output analysis
+  - **Use Case:** Systematic accessibility review, WCAG compliance checking, component hardening
+  - **Output:** Accessibility audit report + specific ARIA suggestions + refactored components
+
+- **Agent Name:** github-issue-generator
+  - **Specialization:** Generate structured GitHub issues and PR bodies with all required sections
+  - **Tools Needed:** Read, Edit, Glob, git integration
+  - **Use Case:** Creating consistent feature requests, bug reports, PR documentation
+  - **Output:** Formatted GitHub issue/PR body ready for posting or created directly
+
+### Connections to Existing Automations
+
+- **batch-processor-generator** relates to existing `/scaffold-fastapi-endpoint` and `/apply-utility-refactoring` (all are code generation patterns)
+- **deployment-configurator** could extend existing Vercel setup patterns; complements `/scaffold-agent`
+- **accessibility-auditor** aligns with existing `/audit-styling` and code quality check concepts
+- **github-issue-generator** complements existing PR feedback processing (`/review-pr-feedback`, `/batch-apply-code-fixes`)
+
+### Quick Wins (High Impact, Low Complexity)
+
+1. **`/init-vercel-config`** - 5 minutes to implement, prevents configuration errors
+2. **`/environment-toggle-generator`** - 10 minutes to implement, documents all environment-based features
+3. **`/generate-cdn-upload-instructions`** - 10 minutes to implement, standardizes asset deployment
+
+---
+
+**Document Version:** 2.2
+**Last Updated:** 2026-01-17
+**Source:** Batch Audio Generation + Vercel Configuration + Accessibility Fixes + GitHub Workflow Session
