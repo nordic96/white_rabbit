@@ -7,6 +7,24 @@ class Settings(BaseSettings):
     neo4j_password: str  # No default - must be set explicitly
     neo4j_database: str = "neo4j"
     debug: bool = False
+
+    # TTS Configuration
+    tts_lang_code: str = "b"  # British English for bm_fable
+    tts_default_voice: str = "bm_fable"
+    tts_cache_dir: str = "./audio_cache"
+    tts_sample_rate: int = 24000
+    tts_max_text_length: int = 5000
+    tts_lazy_load: bool = True
+    static_audio_url_prefix: str = "/static/audio"
+    tts_cache_ttl_hours: int = 168  # 7 days
+    tts_cache_max_size_mb: int = 1024  # 1GB max cache size
+    tts_max_workers: int = 4  # Max concurrent TTS generation threads
+
+    # Rate Limiting Configuration
+    rate_limit_tts: str = "10/minute"
+    rate_limit_search: str = "60/minute"
+    rate_limit_default: str = "100/minute"
+
     model_config = SettingsConfigDict(
         env_file=[".env.local", ".env"],
         env_file_encoding="utf-8"

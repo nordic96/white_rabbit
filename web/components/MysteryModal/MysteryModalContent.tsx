@@ -23,6 +23,7 @@ function getDateRangeText(
   return wrapAdBc(firstYear);
 }
 
+const MAX_SIMILAR_MYSTERIES_DISPLAY = 9;
 export default function MysteryModalContent({
   mystery,
   onClose,
@@ -43,6 +44,7 @@ export default function MysteryModalContent({
     <div className="flex flex-col h-full min-h-0">
       {/* Hero Section - Fixed at top */}
       <HeroSection
+        id={mystery.id}
         images={allImages}
         title={mystery.title}
         status={mystery.status}
@@ -60,19 +62,28 @@ export default function MysteryModalContent({
         <CollapsibleVideoSection videos={videos} />
         {hasSimilarMysteries && (
           <>
-            <div className="border-t border-gray-200 dark:border-gray-700" />
+            <div className="border-t border-gray-700" />
             <div>
-              <h3 className="text-lg font-semibold text-dark-gray dark:text-gray-100 mb-4">
+              <h3 className="text-lg font-semibold text-gray-100 mb-4">
                 Similar Mysteries
               </h3>
               <div className="grid grid-cols-3 gap-4">
-                {mystery.similar_mysteries.map((similar) => (
-                  <SimilarMysteryCard
-                    key={similar.id}
-                    mystery={similar}
-                    onClick={setSelectedId}
-                  />
-                ))}
+                {mystery.similar_mysteries
+                  .sort((a, b) => b.score - a.score)
+                  .slice(
+                    0,
+                    Math.min(
+                      mystery.similar_mysteries.length,
+                      MAX_SIMILAR_MYSTERIES_DISPLAY,
+                    ),
+                  )
+                  .map((similar) => (
+                    <SimilarMysteryCard
+                      key={similar.id}
+                      mystery={similar}
+                      onClick={setSelectedId}
+                    />
+                  ))}
               </div>
             </div>
           </>

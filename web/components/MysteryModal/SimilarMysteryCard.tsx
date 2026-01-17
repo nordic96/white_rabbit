@@ -27,13 +27,13 @@ export default function SimilarMysteryCard({
       tabIndex={0}
       onClick={() => onClick(mystery.id)}
       onKeyDown={handleKeyDown}
-      className="group p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-dark-secondary hover:border-blue-500 dark:hover:border-blue-400 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-dark-gray"
+      className="group p-4 rounded-lg border border-gray-700 bg-dark-secondary hover:border-mystery-purple hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-dark-gray"
     >
       <div className="flex items-start justify-between mb-2">
-        <h4 className="text-sm font-semibold text-dark-gray dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2">
+        <h4 className="text-sm font-semibold text-gray-100 group-hover:text-mystery-purple transition-colors line-clamp-2">
           {mystery.title}
         </h4>
-        <span className="ml-2 shrink-0 inline-flex items-center text-xs font-medium text-blue-600 dark:text-blue-400">
+        <span className="ml-2 shrink-0 inline-flex items-center text-xs font-medium text-category-yellow">
           <HiStar className="w-3.5 h-3.5 mr-1" />
           {similarityPercentage}%
         </span>
@@ -44,9 +44,9 @@ export default function SimilarMysteryCard({
           {displayReasons.map((reason, index) => (
             <li
               key={index}
-              className="flex items-start text-xs text-gray-600 dark:text-gray-400 line-clamp-1"
+              className="flex items-start text-xs text-gray-400 line-clamp-1"
             >
-              <HiCheck className="w-3 h-3 mr-1.5 mt-0.5 shrink-0 text-green-600 dark:text-green-400" />
+              <HiCheck className="w-3 h-3 mr-1.5 mt-0.5 shrink-0 text-green-400" />
               <span>{reason}</span>
             </li>
           ))}
@@ -54,7 +54,7 @@ export default function SimilarMysteryCard({
       )}
 
       {remainingConnections > 0 && (
-        <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
+        <p className="text-xs text-gray-500 mt-2">
           +{remainingConnections} more connection
           {remainingConnections !== 1 ? 's' : ''}
         </p>

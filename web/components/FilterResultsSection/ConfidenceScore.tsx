@@ -16,16 +16,12 @@ export default function ConfidenceScore({ score }: ConfidenceScoreProps) {
             key={i}
             className={cn(
               'w-3 h-3',
-              i < filledStars
-                ? 'text-yellow-500 dark:text-yellow-400'
-                : 'text-gray-300 dark:text-gray-600',
+              i < filledStars ? 'text-yellow-400' : 'text-gray-600',
             )}
           />
         ))}
       </div>
-      <span className="text-xs text-gray-500 dark:text-gray-500 ml-0.5">
-        {score.toFixed(2)}
-      </span>
+      <span className="text-xs text-gray-500 ml-0.5">{score.toFixed(2)}</span>
     </div>
   );
 }

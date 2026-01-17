@@ -13,7 +13,7 @@ export default function HeroImage({
   altText,
 }: HeroImageProps): React.ReactElement {
   return (
-    <div className="relative aspect-4/3 lg:aspect-3/4 bg-gray-100 dark:bg-dark-secondary overflow-hidden">
+    <div className="relative aspect-4/3 lg:aspect-3/4 bg-dark-secondary overflow-hidden">
       {imageUrl ? (
         <>
           <Image
@@ -31,7 +31,7 @@ export default function HeroImage({
         // Placeholder when no image is available
         <div className="flex items-center justify-center h-full">
           <HiQuestionMarkCircle
-            className="w-24 h-24 text-gray-400 dark:text-gray-600"
+            className="w-24 h-24 text-gray-600"
             aria-hidden="true"
           />
         </div>

@@ -21,14 +21,23 @@ No test framework is currently configured.
 
 - **Frontend:** Next.js 16, React 19, TypeScript 5.9
 - **Styling:** Tailwind CSS 4 with PostCSS
-- **Backend (planned):** Python FastAPI for Neo4J CRUD operations
-- **Database (planned):** Neo4J graph database
+- **Backend:** Python 3.11 with FastAPI for Neo4J CRUD operations and TTS service
+- **Database:** Neo4J graph database
+- **TTS Engine:** Kokoro-82M model for text-to-speech audio generation
+- **Rate Limiting:** slowapi for API rate limiting
+- **Security:** Pydantic schema validation, input validation, rate limiting, cache security
 
 ## Architecture
 
 ```
 app/                 # Next.js App Router (pages and layouts)
-api/                 # Backend API directory (currently empty, planned for FastAPI)
+api/src/             # FastAPI backend
+  ├── config.py      # Configuration management with Pydantic Settings
+  ├── main.py        # FastAPI app initialization with security checks
+  ├── routers/       # API endpoint definitions
+  ├── services/      # Business logic (TTS, search, etc.)
+  ├── db/            # Database connections and operations
+  └── schemas/       # Request/response validation schemas
 public/              # Static assets
 .claude/agents/      # Custom Claude Code agent definitions
 ```
@@ -44,6 +53,26 @@ TypeScript is configured with `@/*` mapping to the project root for imports.
 - Create feature branches from `develop`
 - PRs to `develop` trigger automated Claude code review
 
+### Branch Naming Convention
+
+Use one of these formats for feature branches:
+- `issue_[number]` - For issues (e.g., `issue_42`)
+- `dev_[feature]` - For general development (e.g., `dev_search_refinement`)
+
+**Important:** Avoid using the `#` character in branch names (not all systems support it).
+
+### PR Review Workflow
+
+When reviewing PRs locally:
+```bash
+gh pr view [number] --comments  # Read all PR comments including reviews
+```
+
+When addressing review comments, prioritize:
+1. Critical priority issues first
+2. High priority issues second
+3. Suggestions and improvements last
+
 ## GitHub Actions
 
 Two Claude-powered workflows are configured:
@@ -52,13 +81,15 @@ Two Claude-powered workflows are configured:
 
 ## Custom Agents
 
-Three specialized agents are configured in `.claude/agents/`:
+Specialized agents are configured in `.claude/agents/` with subdirectory organization:
 
-| Agent | Purpose |
-|-------|---------|
-| **frontend-dev** | Next.js/React/TypeScript development, UI components, Tailwind CSS styling |
-| **backend-dev** | Python FastAPI development, Neo4J database operations, Cypher queries |
-| **ui-ux-designer** | Design consistency review, accessibility audits, visual hierarchy analysis |
+| Agent | Location | Purpose |
+|-------|----------|---------|
+| **frontend-dev** | `.claude/agents/frontend-dev/` | Next.js/React/TypeScript development, UI components, Tailwind CSS styling |
+| **backend-dev** | `.claude/agents/backend-dev/` | Python FastAPI development, Neo4J database operations, Cypher queries |
+| **ui-ux-designer** | `.claude/agents/ui-ux-designer/` | Design consistency review, accessibility audits, visual hierarchy analysis |
+
+Each agent has its own configuration file (`[agent-name].md`) and specialized guidelines (`SKILL.md`).
 
 All agents have access to Playwright MCP for browser automation and testing.
 
@@ -77,3 +108,719 @@ Playwright MCP is configured project-wide in `.mcp.json` for browser automation 
 - Responsive design validation
 - User interaction automation
 - Accessibility testing
+
+## UI Components & Styling
+
+### Theme & Color Palette
+
+The application uses a dark theme by default. All color definitions are maintained in `app/globals.css` as CSS custom properties for consistency across components:
+
+```css
+/* Primary Node Type Colors */
+--color-mystery-purple: #4142f3
+--color-category-yellow: #fedf66
+--color-location-pink: #ff79c6
+--color-time-period-skyblue: #8be9fd
+--color-primary-navy: #1f1e81
+
+/* UI Colors */
+--color-dark-gray: #212121
+--color-dark-secondary: #303030
+```
+
+These colors map to Neo4j node types and are used throughout the application for visual consistency.
+
+### GraphLegend Component
+
+Location: `components/GraphMap/GraphLegend.tsx`
+
+Displays a legend showing all graph node types with their corresponding colors and icons:
+- **Mystery** (purple #4142f3) - Question mark icon
+- **Location** (pink #ff79c6) - Location marker icon
+- **Time Period** (sky blue #8be9fd) - Clock icon
+- **Category** (yellow #fedf66) - Tag icon
+
+The component uses a fixed LEGEND_ITEMS array that mirrors the NodeColorMap in GraphMap.tsx. If adding new node types, update both locations.
+
+Usage: Integrated into GraphMap component's absolute positioned top-left overlay.
+
+### Node Color Mapping
+
+The `NodeColorMap` in `components/GraphMap/GraphMap.tsx` defines colors for all graph node types:
+
+```typescript
+const NodeColorMap: Record<NodeType, string> = {
+  Category: '#fedf66',
+  Location: '#ff79c6',
+  Mystery: '#4142f3',
+  TimePeriod: '#8be9fd',
+};
+```
+
+This map is used when rendering nodes in the Neo4j visualization library (NVL). Keep this synchronized with:
+1. LEGEND_ITEMS in GraphLegend.tsx
+2. CSS custom properties in globals.css
+3. Any design system documentation
+
+## API Endpoints
+
+### Text-To-Speech - `POST /api/tts`
+
+Generates audio from text using the Kokoro-82M model with caching.
+
+**Rate Limited:** 10 requests per minute per IP
+
+**Request Body:**
+```json
+{
+  "mystery_id": "mystery_123",
+  "text": "The Lost City of Atlantis remains one of history's greatest mysteries.",
+  "voice_id": "bm_fable"  // optional, defaults to tts_default_voice
+}
+```
+
+**Response:**
+```json
+{
+  "audio_url": "/static/audio/a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6.wav",
+  "cached": true  // true if returned from cache, false if newly generated
+}
+```
+
+**Error Responses:**
+- `400`: Text too long (exceeds `tts_max_text_length`)
+- `429`: Rate limit exceeded (10/minute)
+- `500`: Audio generation failed
+- `503`: TTS model not ready
+
+**Cache Behavior:**
+- Cache keys are deterministic (SHA256 hash of text + voice_id)
+- Identical requests return cached audio for better performance
+- Background cleanup removes old files and enforces size limits
+
+### Text-To-Speech Health Check - `GET /api/tts/health`
+
+Returns TTS service status and configuration.
+
+**Response:**
+```json
+{
+  "status": "ready",
+  "model_loaded": false,
+  "lazy_load": true,
+  "default_voice": "bm_fable",
+  "sample_rate": 24000,
+  "max_text_length": 5000
+}
+```
+
+### Available Voices - `GET /api/tts/voices`
+
+List all available Kokoro voices (16 different voice options across American and British English).
+
+**Response includes:** Voice ID, name, language, gender, and description (if applicable).
+
+### TTS Model Warmup - `POST /api/tts/warmup`
+
+Preload the TTS model into memory to reduce latency on first request (optional optimization).
+
+### Global Search - `GET /api/search`
+
+Performs fulltext search across all indexed node types (Mystery, Location, TimePeriod, Category).
+
+**Rate Limited:** 60 requests per minute per IP
+
+**Query Parameters:**
+- `q` (string, required): Search query (1-200 characters)
+- `limit` (integer, optional): Maximum results to return, default: 10, max: 100
+
+**Example Request:**
+```
+GET /api/search?q=atlantis&limit=20
+```
+
+**Response:**
+```json
+{
+  "query": "atlantis",
+  "total": 2,
+  "results": [
+    {
+      "id": "mystery_001",
+      "type": "Mystery",
+      "text": "Lost City of Atlantis",
+      "score": 3.45
+    },
+    {
+      "id": "location_015",
+      "type": "Location",
+      "text": "Santorini",
+      "score": 2.12
+    }
+  ]
+}
+```
+
+**Error Responses:**
+- `429`: Rate limit exceeded (60/minute)
+- `422`: Validation error (invalid query length or limit range)
+- `503`: Database connection error
+
+Results are sorted by relevance score (highest first). Uses Neo4j fulltext index for efficient searching.
+
+## Backend Configuration
+
+Backend settings are managed through Pydantic Settings in `api/src/config.py` with environment variable support.
+
+### Environment Variables (config.py)
+
+**Core Configuration:**
+- `origin_url`: Frontend URL for CORS (default: http://localhost:3000)
+- `neo4j_uri`: Neo4j connection URI (default: neo4j://localhost:7687)
+- `neo4j_username`: Neo4j username (default: neo4j)
+- `neo4j_password`: Neo4j password (REQUIRED - no default)
+- `neo4j_database`: Database name (default: neo4j)
+- `debug`: Debug mode flag (default: False)
+
+**TTS Service Configuration:**
+- `tts_lang_code`: Language code for Kokoro (default: "b" for British English)
+- `tts_default_voice`: Default voice ID (default: "bm_fable" - Fable narrator)
+- `tts_cache_dir`: Directory for cached audio files (default: ./audio_cache)
+- `tts_sample_rate`: Audio sample rate in Hz (default: 24000)
+- `tts_max_text_length`: Maximum text length for TTS (default: 5000)
+- `tts_lazy_load`: Load model only on first request (default: True)
+- `static_audio_url_prefix`: URL prefix for serving cached audio (default: /static/audio)
+- `tts_cache_ttl_hours`: Cache TTL in hours (default: 168 = 7 days)
+- `tts_cache_max_size_mb`: Maximum cache directory size in MB (default: 1024 = 1GB)
+- `tts_max_workers`: ThreadPoolExecutor max workers for TTS (default: 4)
+
+**Rate Limiting Configuration:**
+- `rate_limit_tts`: TTS endpoint rate limit (default: "10/minute")
+- `rate_limit_search`: Search endpoint rate limit (default: "60/minute")
+- `rate_limit_default`: Default rate limit for other endpoints (default: "100/minute")
+
+All settings support `.env` and `.env.local` files for local development.
+
+## Security Features
+
+### Rate Limiting
+
+Rate limiting is implemented using slowapi with per-IP tracking:
+
+- **TTS Endpoint:** 10 requests per minute (CPU-intensive, limited to prevent resource exhaustion)
+- **Search Endpoint:** 60 requests per minute (normal usage pattern)
+- **Other Endpoints:** 100 requests per minute (default fallback)
+
+Applied via `@limiter.limit(settings.rate_limit_*)` decorators on route handlers. Rate limit config is centralized in Settings for easy adjustment.
+
+### Cache Directory Security
+
+Cache directory validation occurs on startup to prevent directory traversal:
+
+```python
+def validate_cache_directory(cache_path: Path) -> None:
+    """
+    - Ensures cache directory is within application root (no ../.. escapes)
+    - Creates directory with proper permissions if needed
+    - Verifies write access is available
+    """
+```
+
+Located in `/Users/gihunko/projects/white_rabbit/api/src/main.py` (lines 39-71).
+
+### Neo4j Index Verification
+
+On startup, the API verifies the required `globalSearch` fulltext index exists:
+
+```python
+async def verify_search_index(app: FastAPI) -> None:
+    """Check for globalSearch index and fail fast if missing"""
+```
+
+If the index is not found, a `DatabaseIndexError` is raised with hint to run `api/docs/create_fulltext_index.cypher`.
+
+### Input Validation
+
+All API inputs are validated at the Pydantic schema level:
+
+- **TTS Endpoint:** Text length validated (max 5000 characters)
+- **Search Endpoint:** Query length validated (1-200 characters), limit range validated (1-100)
+- Request bodies validated against typed Pydantic models before handler execution
+
+### Thread Pool Bounding
+
+TTS audio generation uses a bounded ThreadPoolExecutor with configurable max_workers:
+
+```python
+_tts_executor = ThreadPoolExecutor(max_workers=settings.tts_max_workers)
+```
+
+Prevents uncontrolled thread creation for CPU-intensive Kokoro model operations.
+
+## TTS Service & Cache Management
+
+### Cache Strategy
+
+TTS audio is cached based on a SHA256 hash of the input text and voice ID:
+
+1. **Cache Lookup:** Check if audio file exists for given text + voice combination
+2. **Cache Hit:** Return existing file with `cached=True` flag
+3. **Cache Miss:** Generate audio via Kokoro, save to cache, return new file with `cached=False`
+
+Cache keys are deterministic, so identical requests reuse cached audio.
+
+### Cache Cleanup
+
+Background cleanup is triggered on each TTS request (`POST /api/tts`):
+
+```python
+async def cleanup_old_cache_files() -> int:
+    """
+    Removes:
+    1. Files older than tts_cache_ttl_hours (default: 7 days)
+    2. Oldest files when total size exceeds tts_cache_max_size_mb (default: 1GB)
+    """
+```
+
+Cleanup is non-blocking and runs asynchronously. Returns count of removed files.
+
+### Cache Storage
+
+- Location: Configured via `tts_cache_dir` (default: `./audio_cache`)
+- Served via FastAPI StaticFiles at `{static_audio_url_prefix}` (default: `/static/audio`)
+- File format: WAV (soundfile library)
+- Naming: Deterministic filenames based on cache key (e.g., `a1b2c3d4e5f6....wav`)
+
+## Development Patterns
+
+### API Route Query Parameter Validation
+
+All API routes that accept query parameters must validate them before processing:
+
+```typescript
+// app/api/search/route.ts
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const query = searchParams.get('q');
+  const limitParam = searchParams.get('limit');
+
+  // Validate required parameters
+  if (!query || query.length === 0) {
+    return Response.json(
+      {
+        error: 'INVALID_QUERY',
+        message: 'Query parameter is required and must not be empty',
+        status_code: 400,
+      },
+      { status: 400 }
+    );
+  }
+
+  // Validate parameter length constraints
+  if (query.length > 200) {
+    return Response.json(
+      {
+        error: 'QUERY_TOO_LONG',
+        message: 'Query must be 200 characters or less',
+        status_code: 400,
+      },
+      { status: 400 }
+    );
+  }
+
+  // Validate numeric parameters
+  let limit = 10;
+  if (limitParam) {
+    const parsedLimit = parseInt(limitParam, 10);
+    if (isNaN(parsedLimit) || parsedLimit < 1 || parsedLimit > 100) {
+      return Response.json(
+        {
+          error: 'INVALID_LIMIT',
+          message: 'Limit must be a number between 1 and 100',
+          status_code: 400,
+        },
+        { status: 400 }
+      );
+    }
+    limit = parsedLimit;
+  }
+
+  // Process validated parameters
+}
+```
+
+Always propagate error responses with the standard ErrorResponse format for consistency with frontend error handling.
+
+### API Route Timeout Protection
+
+Use AbortController with setTimeout for backend calls to prevent hanging requests:
+
+```typescript
+export async function GET(request: Request) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+
+  try {
+    const response = await fetch('http://localhost:8000/endpoint', {
+      signal: controller.signal,
+    });
+    // Handle response
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      return Response.json(
+        {
+          error: 'REQUEST_TIMEOUT',
+          message: 'Backend service request timed out',
+          status_code: 504,
+        },
+        { status: 504 }
+      );
+    }
+    // Handle other errors
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+```
+
+### Frontend State Management with Zustand
+
+Use Zustand stores for client-side state that interacts with the API. Implement AbortController for race condition prevention:
+
+```typescript
+import { create } from 'zustand';
+
+interface SearchStore {
+  results: SearchResult[];
+  isLoading: boolean;
+  error: string | null;
+  abortController: AbortController | null;
+  search: (query: string) => Promise<void>;
+  reset: () => void;
+}
+
+export const useSearchStore = create<SearchStore>((set) => ({
+  results: [],
+  isLoading: false,
+  error: null,
+  abortController: null,
+
+  search: async (query: string) => {
+    set({ isLoading: true, error: null });
+
+    // Cancel previous request if it's still in flight
+    const prevController = useSearchStore.getState().abortController;
+    if (prevController) {
+      prevController.abort();
+    }
+
+    const controller = new AbortController();
+    set({ abortController: controller });
+
+    try {
+      const response = await fetchApi<SearchResponse>('/api/search', {
+        query_params: { q: query, limit: 20 },
+        signal: controller.signal,
+      });
+
+      set({ results: response.results, error: null });
+    } catch (error) {
+      if (error instanceof Error && error.name !== 'AbortError') {
+        set({ error: error.message });
+      }
+    } finally {
+      set({ isLoading: false, abortController: null });
+    }
+  },
+
+  reset: () => {
+    set({
+      results: [],
+      isLoading: false,
+      error: null,
+      abortController: null,
+    });
+  },
+}));
+```
+
+**Key patterns:**
+- Cancel previous requests before starting new ones to prevent stale updates
+- Use fetchApi with type generics for type-safe API calls
+- Clean up AbortController in finally block
+- Propagate API error responses to store state
+
+### Reusing Existing Hooks
+
+Prefer existing custom hooks over manual event listener implementation:
+- Use `useClickOutside` for closing modals/dropdowns instead of manually adding document click listeners
+- Check existing hooks in `app/hooks/` before creating new ones
+- Document hook behavior in their JSDoc comments
+
+### Neo4j Cypher Query Security
+
+Always use parameterized queries to prevent injection attacks. Never interpolate user input directly into Cypher strings.
+
+**Vulnerable (avoid):**
+```python
+# DO NOT DO THIS
+cypher_query = f'MATCH (n) WHERE n.name = "{user_input}" RETURN n'
+```
+
+**Secure (correct):**
+```python
+cypher_query = "MATCH (n) WHERE n.name = $name RETURN n"
+parameters = {"name": user_input}
+results = await execute_read_query(request, cypher_query, parameters)
+```
+
+All parameters are passed separately from the query string to prevent injection.
+
+### Next.js API Routes - Route Caching
+
+Next.js App Router caches GET routes by default for performance. When building real-time endpoints (health checks, status monitors), use the dynamic export to force re-evaluation on every request:
+
+```typescript
+// app/api/health/route.ts
+export const dynamic = 'force-dynamic';
+
+export async function GET(request: Request) {
+  // Endpoint logic here
+}
+```
+
+Without this, cached responses may be stale. Always use `force-dynamic` for endpoints that should reflect current state.
+
+### API Error Response Format
+
+The frontend fetchApi utility expects error responses to match a specific ErrorResponse type structure:
+
+```typescript
+{
+  error: string;      // Error type/category
+  message: string;    // Human-readable message
+  status_code: number; // HTTP status code
+}
+```
+
+API routes must return errors in this format for error handling to work correctly. Example:
+
+```typescript
+return Response.json(
+  {
+    error: 'SERVICE_UNAVAILABLE',
+    message: 'Backend service is unreachable',
+    status_code: 503,
+  },
+  { status: 503 }
+);
+```
+
+### Health Check Proxy Pattern
+
+Backend health checks should be proxied through Next.js API routes with timeout protection:
+
+```typescript
+export async function GET(request: Request) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+
+  try {
+    const response = await fetch('http://localhost:8000/health', {
+      signal: controller.signal,
+    });
+    const data = await response.json();
+    return Response.json(data);
+  } catch (error) {
+    return Response.json(
+      {
+        error: 'SERVICE_UNAVAILABLE',
+        message: 'Backend service is unreachable',
+        status_code: 503,
+      },
+      { status: 503 }
+    );
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+```
+
+### Status Monitoring Components
+
+Use a polling pattern with useEffect and setInterval for real-time status components:
+
+```typescript
+export function DBServerStatus() {
+  const [status, setStatus] = useState('checking');
+  const [lastCheck, setLastCheck] = useState<Date | null>(null);
+
+  useEffect(() => {
+    const checkStatus = async () => {
+      try {
+        const response = await fetch('/api/health');
+        const data = await response.json();
+        setStatus(response.ok ? 'online' : 'offline');
+      } catch {
+        setStatus('offline');
+      }
+      setLastCheck(new Date());
+    };
+
+    checkStatus();
+    const interval = setInterval(checkStatus, 30000); // Poll every 30s
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Component JSX here
+}
+```
+
+Configure polling intervals based on use case - health endpoints typically poll every 30-60 seconds to minimize overhead.
+
+## Backend Development Patterns
+
+### Async/Await in FastAPI
+
+All FastAPI route handlers must be async for proper concurrency:
+
+```python
+@router.get("/endpoint")
+async def my_endpoint(request: Request):
+    # Use await for I/O operations
+    result = await some_async_operation()
+    return result
+```
+
+CPU-bound operations should be offloaded to a thread pool using `loop.run_in_executor()`:
+
+```python
+loop = asyncio.get_event_loop()
+result = await loop.run_in_executor(executor, cpu_bound_function)
+```
+
+### Input Validation with Pydantic
+
+All inputs are validated via Pydantic schemas. Query parameters use FastAPI's Query() for validation:
+
+```python
+@router.get("/search")
+async def search(
+    q: str = Query(
+        ...,                    # ... means required
+        min_length=1,
+        max_length=200,
+        description="Search query"
+    ),
+    limit: int = Query(
+        default=10,
+        ge=1,                   # greater than or equal
+        le=100,                 # less than or equal
+        description="Result limit"
+    )
+):
+    # Query parameters are pre-validated before handler runs
+```
+
+Request bodies use Pydantic BaseModel:
+
+```python
+from pydantic import BaseModel
+
+class TTSRequest(BaseModel):
+    mystery_id: str
+    text: str
+    voice_id: str = "default"  # Optional with default
+
+@router.post("/tts")
+async def create_tts(tts_request: TTSRequest):
+    # tts_request is fully validated
+    return await generate_tts_audio(
+        tts_request.mystery_id,
+        tts_request.text,
+        tts_request.voice_id
+    )
+```
+
+### Applying Rate Limits
+
+Use the `@limiter.limit()` decorator to rate limit routes:
+
+```python
+from fastapi import APIRouter, Request
+
+@router.post("/expensive-operation")
+@limiter.limit("10/minute")
+async def expensive_operation(request: Request):
+    # Limited to 10 requests per minute per IP
+    pass
+```
+
+Rate limits are configurable via environment variables (Settings class). Exceeding limits returns 429 Too Many Requests.
+
+### Bounded Thread Pools for CPU Operations
+
+For CPU-intensive work, create a bounded ThreadPoolExecutor at module level:
+
+```python
+from concurrent.futures import ThreadPoolExecutor
+from ..config import settings
+
+# Create once at module load time
+_executor = ThreadPoolExecutor(max_workers=settings.max_workers)
+
+async def cpu_operation():
+    loop = asyncio.get_event_loop()
+    result = await loop.run_in_executor(_executor, blocking_function)
+    return result
+```
+
+This prevents uncontrolled thread explosion from concurrent requests.
+
+### Exception Handling
+
+Custom exceptions should inherit from a base WhiteRabbitException:
+
+```python
+from ..exceptions import WhiteRabbitException
+
+class CustomError(WhiteRabbitException):
+    def __init__(self, message: str, details: dict = None):
+        super().__init__(message=message, details=details)
+```
+
+Exception handlers are registered in main.py with most specific exceptions first:
+
+```python
+app.add_exception_handler(WhiteRabbitException, handler)
+app.add_exception_handler(HTTPException, handler)
+app.add_exception_handler(RequestValidationError, handler)
+app.add_exception_handler(Exception, handler)  # Generic fallback
+```
+
+### Startup and Shutdown
+
+Use the FastAPI lifespan context manager for initialization and cleanup:
+
+```python
+@asynccontextmanager
+async def app_lifespan(app: FastAPI):
+    # Startup tasks
+    logger.info("Starting up...")
+    await initialize_resources()
+
+    yield  # App runs here
+
+    # Shutdown tasks
+    logger.info("Shutting down...")
+    await cleanup_resources()
+
+app = FastAPI(lifespan=app_lifespan)
+```
+
+Critical startup tasks include:
+1. Database connection validation
+2. Cache directory security checks
+3. Index verification
+4. TTS model initialization (or lazy-loading setup)

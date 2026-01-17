@@ -44,7 +44,7 @@ export default function FilterResultsSection() {
   };
 
   return (
-    <div className="h-full flex flex-col bg-gray-100 dark:bg-dark-gray">
+    <div className="h-full flex flex-col">
       {metadata && (
         <FilterHeader
           metadata={metadata}
