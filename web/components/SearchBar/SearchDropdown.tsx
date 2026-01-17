@@ -114,8 +114,6 @@ export function SearchDropdown({
           'rounded-lg shadow-lg',
           'text-center text-gray-400',
         )}
-        role="status"
-        aria-live="polite"
       >
         <LoadingSpinner message={'Searching'} size={'sm'} fullScreen={false} />
       </div>

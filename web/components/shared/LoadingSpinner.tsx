@@ -19,7 +19,7 @@ const SIZE_STYLES = {
     text: 'text-lg max-sm:text-sm',
   },
   md: {
-    spinner: 'h-16 w-16 max-sm:h-12 max-sm:w-12 border-b-6 border-r-6',
+    spinner: 'h-16 w-16 max-sm:h-12 max-sm:w-12 border-b-4 border-r-4',
     text: 'text-base max-sm:text-sm',
   },
   sm: {
@@ -28,6 +28,13 @@ const SIZE_STYLES = {
   },
 } as const;
 
+/**
+ * A reusable loading spinner component with animated dots and customisable sizing
+ * @param size - Spinner size variant: 'sm' | 'md' | 'lg' (default: 'lg')
+ * @param message - Loading message to display (default: 'Loading')
+ * @param fullScreen - Whether to center in full screen height (default: true)
+ * @param className - Additional CSS classes to apply
+ */
 export default function LoadingSpinner({
   message = 'Loading',
   size = 'lg',
@@ -57,7 +64,7 @@ export default function LoadingSpinner({
       <div
         aria-hidden="true"
         className={cn(
-          'animate-spin rounded-full border-mystery-purple mx-auto mb-4',
+          'animate-spin rounded-full border-mystery-purple border-t-transparent mx-auto mb-4',
           SIZE_STYLES[size].spinner,
         )}
       />
