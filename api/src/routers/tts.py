@@ -17,6 +17,8 @@ from slowapi.util import get_remote_address
 from ..schemas.tts import TTSRequest, TTSResponse
 from ..services.tts_service import generate_tts_audio, cleanup_old_cache_files
 from ..services.tts_model import warmup_tts_model, is_tts_model_ready
+from ..services.url_service import url_exists
+from ..exceptions import AudioNotFoundError
 from ..config import settings
 
 logger = logging.getLogger(__name__)
@@ -50,6 +52,9 @@ router = APIRouter(
         400: {
             "description": "Bad request - text too long or invalid parameters"
         },
+        404: {
+            "description": "Pre-generated audio file not found (when TTS disabled)"
+        },
         429: {
             "description": "Rate limit exceeded"
         },
@@ -79,10 +84,20 @@ async def create_tts(request: Request, tts_request: TTSRequest) -> TTSResponse:
     Returns:
         TTSResponse with audio URL and cache status
     """
-    # When TTS is disabled, return pre-generated audio URL
+    # When TTS is disabled, return pre-generated audio URL after validation
     if not settings.tts_enabled:
         audio_url = f"{settings.audio_base_url}/{tts_request.mystery_id}.wav"
-        logger.info(f"TTS disabled, returning pre-generated audio: {audio_url}")
+        logger.info(f"TTS disabled, checking pre-generated audio: {audio_url}")
+
+        # Validate that the audio file exists at the CDN URL
+        if not await url_exists(audio_url):
+            logger.warning(f"Pre-generated audio not found: {audio_url}")
+            raise AudioNotFoundError(
+                mystery_id=tts_request.mystery_id,
+                audio_url=audio_url
+            )
+
+        logger.info(f"Pre-generated audio validated: {audio_url}")
         return TTSResponse(audio_url=audio_url, cached=True)
 
     # Trigger cache cleanup in background (non-blocking)
