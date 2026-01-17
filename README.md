@@ -1,13 +1,14 @@
 # White Rabbit
-> *"You take the blue pill - the story ends, you wake up in your bed and believe whatever you want to believe. You take the red pill - you stay in Wonderland and I show you how deep the rabbit hole goes"* - Morpheus [Matrix]
 
-![BrandLogo designed with Google Nano Banana](./resources/brand_logo.png)
+<img src="resources/brand_logo.png" alt="White Rabbit Brand Logo" style="width: 300px; max-width: 300px;">
+
 *Logo Designed by Google Nano Banana*
 
-
-<img src="resources/demo_v0.0.2.gif" alt="White Rabbit Demo" style="width: 100%; max-width: 100%;">
+> *"You take the blue pill - the story ends, you wake up in your bed and believe whatever you want to believe. You take the red pill - you stay in Wonderland and I show you how deep the rabbit hole goes"* - Morpheus [Matrix]
 
 ## Overview
+
+<img src="resources/demo_v0.0.2.gif" alt="White Rabbit Demo" style="width: 100%; max-width: 100%;">
 
 White Rabbit is an interactive web application for exploring the world's unsolved mysteries through a knowledge graph powered by Neo4j. Discover connections between mysterious events, locations, time periods, and categories through an intuitive visual interface.
 

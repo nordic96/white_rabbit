@@ -8,7 +8,7 @@ This module provides endpoints for:
 - Available voices listing
 """
 from fastapi import APIRouter, Request
-from typing import List, Dict, Any
+from typing import Dict, Any
 import logging
 
 from slowapi import Limiter
@@ -87,7 +87,6 @@ async def create_tts(request: Request, tts_request: TTSRequest) -> TTSResponse:
     # When TTS is disabled, return pre-generated audio URL after validation
     if not settings.tts_enabled:
         audio_url = f"{settings.audio_base_url}/{tts_request.mystery_id}.wav"
-        logger.info(f"TTS disabled, checking pre-generated audio: {audio_url}")
 
         # Validate that the audio file exists at the CDN URL
         if not await url_exists(audio_url):
@@ -97,7 +96,7 @@ async def create_tts(request: Request, tts_request: TTSRequest) -> TTSResponse:
                 audio_url=audio_url
             )
 
-        logger.info(f"Pre-generated audio validated: {audio_url}")
+        logger.info(f"TTS disabled, returning pre-generated audio: {audio_url}")
         return TTSResponse(audio_url=audio_url, cached=True)
 
     # Trigger cache cleanup in background (non-blocking)
