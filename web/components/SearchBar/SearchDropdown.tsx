@@ -9,6 +9,7 @@ import {
 } from 'react-icons/hi';
 import { SearchResultItem } from '@/types';
 import { cn } from '@/utils';
+import LoadingSpinner from '../shared/LoadingSpinner';
 
 interface SearchDropdownProps {
   results: SearchResultItem[];
@@ -116,10 +117,7 @@ export function SearchDropdown({
         role="status"
         aria-live="polite"
       >
-        <div className="flex items-center justify-center gap-2">
-          <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-          <span>Searching...</span>
-        </div>
+        <LoadingSpinner message={'Searching'} size={'sm'} fullScreen={false} />
       </div>
     );
   }
