@@ -1,4 +1,4 @@
-import { API_KEY, API_URL } from '@/config';
+import { API_URL } from '@/config';
 import { fetchApi } from '@/utils';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -16,11 +16,7 @@ export async function GET(
   try {
     // Fetch audio from backend
     const backendUrl = `${API_URL}/static/audio/${filename}`;
-    const response = await fetchApi(backendUrl, {
-      headers: {
-        'X-API-Key': API_KEY,
-      },
-    });
+    const response = await fetchApi(backendUrl);
 
     if (!response.ok) {
       return NextResponse.json(

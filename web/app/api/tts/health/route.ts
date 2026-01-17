@@ -1,4 +1,4 @@
-import { API_KEY, API_URL } from '@/config';
+import { API_URL } from '@/config';
 import { TTSHealthResponse } from '@/types';
 import { fetchApi } from '@/utils';
 import { NextResponse } from 'next/server';
@@ -13,9 +13,6 @@ export async function GET(): Promise<NextResponse> {
     const url = new URL(`${API_URL}/api/tts/health`);
     const res = await fetchApi<TTSHealthResponse>(url, {
       signal: controller.signal,
-      headers: {
-        'X-API-Key': API_KEY,
-      },
     });
 
     if (!res.ok) {

@@ -1,18 +1,17 @@
 """
 Search endpoints for global fulltext search across Mystery, Location, TimePeriod, and Category nodes.
 """
-from fastapi import APIRouter, Request, Query, Depends
 import logging
 
+from fastapi import APIRouter, Query, Request
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-from ..middleware import verify_api_key
-
-from ..schemas.search import SearchResponse
-from ..schemas.error import ErrorResponse, ValidationErrorResponse
-from ..services.search_service import search_global
 from ..config import settings
+from ..middleware import API_KEY_DEPENDENCIES
+from ..schemas.error import ErrorResponse, ValidationErrorResponse
+from ..schemas.search import SearchResponse
+from ..services.search_service import search_global
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +21,7 @@ limiter = Limiter(key_func=get_remote_address)
 router = APIRouter(
     prefix="/api/search",
     tags=["search"],
-    dependencies=[Depends(verify_api_key)] if settings.api_key_required else []
+    dependencies=API_KEY_DEPENDENCIES
 )
 
 

@@ -1,4 +1,4 @@
-import { API_KEY, API_URL } from '@/config';
+import { API_URL } from '@/config';
 import { SearchResponse } from '@/types';
 import { fetchApi } from '@/utils';
 import { NextRequest, NextResponse } from 'next/server';
@@ -65,9 +65,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     const res = await fetchApi<SearchResponse>(url, {
       signal: controller.signal,
-      headers: {
-        'X-API-Key': API_KEY,
-      },
     });
 
     if (!res.ok) {

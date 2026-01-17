@@ -1,4 +1,4 @@
-import { API_KEY, API_URL } from '@/config';
+import { API_URL } from '@/config';
 import { TTSResponse } from '@/types';
 import { fetchApi } from '@/utils';
 import { NextRequest, NextResponse } from 'next/server';
@@ -11,9 +11,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const res = await fetchApi<TTSResponse>(url, {
       method: 'POST',
       body: JSON.stringify(body),
-      headers: {
-        'X-API-Key': API_KEY,
-      },
     });
 
     if (!res.ok) {

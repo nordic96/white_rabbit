@@ -1,4 +1,4 @@
-import { API_KEY, API_URL } from '@/config';
+import { API_URL } from '@/config';
 import { ApiMysteryListResponse } from '@/types';
 import { fetchApi } from '@/utils';
 import { NextRequest, NextResponse } from 'next/server';
@@ -20,9 +20,6 @@ export async function GET(request: NextRequest) {
 
     const res = await fetchApi<ApiMysteryListResponse>(url, {
       signal: controller.signal,
-      headers: {
-        'X-API-Key': API_KEY,
-      },
     });
     clearTimeout(timeoutId);
 

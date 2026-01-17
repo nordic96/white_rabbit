@@ -1,3 +1,4 @@
+import { API_KEY } from '@/config';
 import type { ErrorResponse } from '@/types/errorResponse';
 import { URL } from 'url';
 
@@ -169,6 +170,7 @@ export async function fetchApi<T>(
       ...options,
       headers: {
         'Content-Type': 'application/json',
+        ...(API_KEY && { 'X-API-Key': API_KEY }),
         ...options?.headers,
       },
     });
