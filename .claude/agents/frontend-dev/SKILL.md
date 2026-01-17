@@ -388,3 +388,69 @@ Components modified in this session:
 **Document Version:** 2.2
 **Last Updated:** 2026-01-15
 **Source:** Health Check Implementation + Global Search Session + SearchBar Refactoring (Issue #27) + PR #44 Theme Changes & UI Fixes
+
+---
+
+## Session Learnings - 2026-01-17 (Accessibility & React Keys)
+
+### Mistakes & Fixes
+
+- **Issue:** React key warning in LoadingSpinner component using array `.map()` on Array(n)
+  - **Root Cause:** Using `Array(n).map((_, i) => ...)` creates array with holes; sparse arrays have unreliable indices, causing key warnings
+  - **Fix:** Replaced `Array(count).map((_, i) => <div key={i}>...)` with `Array(count).fill(null).map((_, i) => <div key={i}>...)` or better yet `.repeat()` with string generation
+  - **Prevention:** Use `.fill(null)` when creating arrays of exact length, or use `.repeat()` for string-based key generation; avoid relying on sparse array indices
+
+- **Issue:** LoadingSpinner missing semantic structure and ARIA attributes
+  - **Root Cause:** Using non-semantic `<span>` elements for status container; no ARIA attributes for accessibility
+  - **Fix:** Changed root container from `<span>` to `<p>` element, added `role="status"` and `aria-live="polite"` for screen readers, added `aria-hidden="true"` to decorative spinner elements
+  - **Prevention:** Always use semantic HTML elements (p, div, section) for content containers; add ARIA attributes for components with dynamic content or decorative elements
+
+### Patterns Discovered
+
+- **Pattern:** Array Generation with `.repeat()` for Safe Keys
+  - **Context:** Creating multiple identical elements (spinner dots, skeleton lines) with stable React keys
+  - **Implementation:**
+    ```typescript
+    // Safe way to generate arrays with stable keys
+    const dots = "...".repeat(count).split("").map((_, i) => (
+      <span key={i} className="dot" />
+    ));
+
+    // Alternative: Array(n).fill(null)
+    const dots = Array(count).fill(null).map((_, i) => (
+      <span key={i} className="dot" />
+    ));
+    ```
+  - **Key Detail:** Avoid Array(n).map() which creates sparse arrays; fill or use string repeat for dense arrays with reliable indices
+
+- **Pattern:** ARIA Attributes for Loading States
+  - **Context:** Communicating loading state to screen reader users
+  - **Implementation:**
+    ```typescript
+    <p role="status" aria-live="polite" aria-hidden={isDecorative}>
+      Loading message or decorative spinner
+    </p>
+    ```
+  - **Key Detail:** `role="status"` announces content changes to screen readers; `aria-live="polite"` waits for pause before announcing; `aria-hidden="true"` hides purely decorative elements
+
+- **Pattern:** Semantic HTML Elements for Content Containers
+  - **Context:** Improving semantic meaning and accessibility of UI components
+  - **Implementation:** Replace generic `<span>` or `<div>` with appropriate semantic elements:
+    - Use `<p>` for text/status messages
+    - Use `<section>` for major content regions
+    - Use `<article>` for self-contained content
+  - **Key Detail:** Semantic elements improve both accessibility and SEO; screen readers provide better context when navigating semantic structure
+
+### Debugging Wins
+
+- **Problem:** React console warnings about non-unique keys in LoadingSpinner
+  - **Approach:** Examined array creation method and identified sparse array issue
+  - **Tool/Technique:** Used React DevTools to inspect rendered elements and verify key values; checked console warnings for specific guidance on missing keys
+
+### Performance Notes
+
+- Using `.repeat()` and `.fill()` have equivalent performance; both create dense arrays suitable for iteration
+- ARIA attributes add zero runtime overhead; purely declarative metadata for assistive technologies
+- Semantic HTML has negligible performance impact but significantly improves code clarity and maintainability
+
+---
