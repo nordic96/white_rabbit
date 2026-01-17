@@ -5,3 +5,9 @@ export const API_URL = (() => {
   }
   return url;
 })();
+
+// Audio CDN URL for production (pre-generated audio files)
+// In development, audio is served through /api/audio proxy
+// In production, this should point to GitHub Pages or CDN URL
+export const AUDIO_BASE_URL =
+  process.env.NEXT_PUBLIC_AUDIO_BASE_URL || '/api/audio';

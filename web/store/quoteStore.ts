@@ -45,7 +45,12 @@ export const useQuoteStore = create<QuoteStore>()((set) => ({
         { method: 'GET', signal: controller.signal },
       );
 
-      if (!warmupRes.ok || warmupRes.data.status === 'not_loaded') {
+      // Allow both 'disabled' (pre-generated audio) and 'warmed_up' (live TTS) statuses
+      if (
+        !warmupRes.ok ||
+        (warmupRes.data.status !== 'disabled' &&
+          warmupRes.data.status !== 'warmed_up')
+      ) {
         throw new Error('Model warmup failed. Model not loaded');
       }
 
