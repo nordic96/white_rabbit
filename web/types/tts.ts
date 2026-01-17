@@ -9,15 +9,18 @@ export interface TTSResponse {
   cached: boolean;
 }
 
-export type TTSModelStatus = 'ready' | 'not_loaded' | 'warmed_up';
+export type TTSModelStatus = 'ready' | 'not_loaded' | 'warmed_up' | 'disabled';
 
 export interface TTSHealthResponse {
   status: TTSModelStatus;
-  model_loaded: boolean;
-  lazy_load: boolean;
+  tts_enabled?: boolean;
+  model_loaded?: boolean;
+  lazy_load?: boolean;
   default_voice?: string;
   sample_rate?: number;
   max_text_length?: number;
+  audio_base_url?: string;
+  message?: string;
 }
 
 export interface TTSWarmupResponse {

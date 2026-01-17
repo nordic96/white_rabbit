@@ -70,6 +70,8 @@ async def create_tts(request: Request, tts_request: TTSRequest) -> TTSResponse:
     Generated audio is cached based on text content and voice ID.
     Rate limited to 10 requests per minute per IP.
 
+    When TTS_ENABLED=false, returns pre-generated audio URL based on mystery_id.
+
     Args:
         request: FastAPI request object (for rate limiting)
         tts_request: TTS request containing mystery_id, text, and optional voice_id
@@ -77,6 +79,12 @@ async def create_tts(request: Request, tts_request: TTSRequest) -> TTSResponse:
     Returns:
         TTSResponse with audio URL and cache status
     """
+    # When TTS is disabled, return pre-generated audio URL
+    if not settings.tts_enabled:
+        audio_url = f"{settings.audio_base_url}/{tts_request.mystery_id}.wav"
+        logger.info(f"TTS disabled, returning pre-generated audio: {audio_url}")
+        return TTSResponse(audio_url=audio_url, cached=True)
+
     # Trigger cache cleanup in background (non-blocking)
     await cleanup_old_cache_files()
 
@@ -113,10 +121,20 @@ async def health_check() -> Dict[str, Any]:
     Returns:
         Health status including model readiness and configuration
     """
+    # When TTS is disabled, report as using pre-generated audio
+    if not settings.tts_enabled:
+        return {
+            "status": "disabled",
+            "tts_enabled": False,
+            "audio_base_url": settings.audio_base_url,
+            "message": "TTS disabled - using pre-generated audio files"
+        }
+
     model_loaded = is_tts_model_ready()
 
     return {
         "status": "ready" if model_loaded else "not_loaded",
+        "tts_enabled": True,
         "model_loaded": model_loaded,
         "lazy_load": settings.tts_lazy_load,
         "default_voice": settings.tts_default_voice,
@@ -152,8 +170,19 @@ async def warmup() -> Dict[str, str]:
 
     This endpoint preloads the Kokoro TTS model into memory,
     reducing latency for the first audio generation request.
+
+    When TTS is disabled, returns success without loading model.
     """
     logger.info("TTS warmup endpoint called")
+
+    # When TTS is disabled, skip model loading
+    if not settings.tts_enabled:
+        logger.info("TTS disabled, skipping warmup")
+        return {
+            "status": "disabled",
+            "message": "TTS disabled - using pre-generated audio files"
+        }
+
     await warmup_tts_model()
 
     return {
