@@ -13,18 +13,24 @@ export async function GET(
   }
 
   try {
-    // Fetch audio from backend
+    const API_KEY = process.env.API_KEY || '';
+    // Fetch audio from backend using native fetch for binary data
     const backendUrl = `${API_URL}/static/audio/${filename}`;
-    const response = await fetch(backendUrl);
+    const response = await fetch(backendUrl, {
+      headers: {
+        ...(API_KEY && { 'X-API-Key': API_KEY }),
+      },
+    });
 
     if (!response.ok) {
+      const errorText = await response.text();
       return NextResponse.json(
-        { error: 'Audio not found' },
+        { error: errorText || 'Failed to fetch audio from backend' },
         { status: response.status },
       );
     }
 
-    // Stream the audio back to client
+    // Get the audio buffer from the response
     const audioBuffer = await response.arrayBuffer();
 
     return new NextResponse(audioBuffer, {

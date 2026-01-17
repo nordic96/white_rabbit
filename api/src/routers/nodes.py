@@ -1,7 +1,11 @@
 """
 Node endpoints for type-based queries.
 """
-from fastapi import APIRouter, Request, Path
+from fastapi import APIRouter, Request, Path, Depends
+
+from ..middleware import verify_api_key
+
+from ..config import settings
 from ..schemas.node import NodeListResponse
 from ..schemas.common import NodeType
 from ..services.node_service import get_nodes_by_type
@@ -9,7 +13,8 @@ from ..services.node_service import get_nodes_by_type
 
 router = APIRouter(
     prefix="/api/nodes",
-    tags=["nodes"]
+    tags=["nodes"],
+    dependencies=[Depends(verify_api_key)] if settings.api_key_required else []
 )
 
 

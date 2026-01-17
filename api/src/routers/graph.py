@@ -1,14 +1,17 @@
 """
 Graph visualization endpoints for NVL integration.
 """
-from fastapi import APIRouter, Request, Query
+from fastapi import APIRouter, Query, Request
+
+from ..middleware import API_KEY_DEPENDENCIES
 from ..schemas.graph import GraphResponse
 from ..services.graph_service import get_graph_data
 
 
 router = APIRouter(
     prefix="/api/graph",
-    tags=["graph"]
+    tags=["graph"],
+    dependencies=API_KEY_DEPENDENCIES
 )
 
 

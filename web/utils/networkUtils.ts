@@ -165,10 +165,12 @@ export async function fetchApi<T>(
   options?: RequestInit,
 ): Promise<ApiResponse<T>> {
   try {
+    const API_KEY = process.env.API_KEY;
     const response = await fetch(url, {
       ...options,
       headers: {
         'Content-Type': 'application/json',
+        ...(API_KEY && { 'X-API-Key': API_KEY }),
         ...options?.headers,
       },
     });

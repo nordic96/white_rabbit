@@ -1,17 +1,21 @@
 """
 Mystery endpoints for CRUD operations.
 """
-from fastapi import APIRouter, Request, Query, Path, status
 from typing import Optional
-from ..schemas.mystery import MysteryListResponse, MysteryDetail
+
+from fastapi import APIRouter, Path, Query, Request
+
+from ..middleware import API_KEY_DEPENDENCIES
 from ..schemas.common import MysteryStatus
 from ..schemas.error import ErrorResponse, ValidationErrorResponse
+from ..schemas.mystery import MysteryDetail, MysteryListResponse
 from ..services.mystery_service import get_mysteries, get_mystery_by_id
 
 
 router = APIRouter(
     prefix="/api/mysteries",
-    tags=["mysteries"]
+    tags=["mysteries"],
+    dependencies=API_KEY_DEPENDENCIES
 )
 
 
