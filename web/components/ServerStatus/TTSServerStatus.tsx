@@ -1,7 +1,7 @@
 'use client';
 
 import { TTSHealthResponse, TTSModelStatus } from '@/types';
-import { ApiError, cn, fetchApi } from '@/utils';
+import { ApiError, clientFetch, cn } from '@/utils';
 import { useEffect, useRef, useState } from 'react';
 
 const INTERVAL = 60000;
@@ -15,7 +15,7 @@ export default function TTSServerStatus() {
       const baseUrl = window.location.href;
       const url = new URL('/api/tts/health', baseUrl);
       try {
-        const res = await fetchApi<TTSHealthResponse>(url);
+        const res = await clientFetch<TTSHealthResponse>(url);
         if (res.ok) {
           setTtsStatus(res.data.status);
           setTtsError(null);

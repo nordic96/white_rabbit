@@ -10,6 +10,8 @@ version= "0.0.1"
 dependencies = [
     "fastapi[standard]",
     "uvicorn",
+    "httpx>=0.28.1",
+    "validators>=0.35.0",
     "neo4j",
     "python-dotenv",
     "pydantic",

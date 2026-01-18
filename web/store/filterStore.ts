@@ -5,7 +5,7 @@ import {
   MysteryItem,
   TIMEPERIOD_ID_PREFIX,
 } from '@/types';
-import { fetchApi } from '@/utils';
+import { clientFetch } from '@/utils';
 import { create } from 'zustand';
 
 let currentController: AbortController | null = null;
@@ -57,7 +57,7 @@ export const useFilterStore = create<FilterStore>()((set) => ({
     }
 
     try {
-      const res = await fetchApi<ApiMysteryListResponse>(apiUrl, {
+      const res = await clientFetch<ApiMysteryListResponse>(apiUrl, {
         method: 'GET',
         signal: controller.signal,
       });

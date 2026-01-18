@@ -17,6 +17,7 @@ import { useFilterStore } from '@/store';
 import TTSServerStatus from '../ServerStatus/TTSServerStatus';
 import DBServerStatus from '../ServerStatus/DBServerStatus';
 import GraphLegend from './GraphLegend';
+import LoadingSpinner from '../shared/LoadingSpinner';
 
 const NodeColorMap: Record<NodeType, string> = {
   Category: '#fedf66',
@@ -102,14 +103,7 @@ export default function GraphMap() {
 
   // Loading/pending state
   if (isPending || nodes.length === 0) {
-    return (
-      <div className="w-full h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p>Loading graph data...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner message={'Loading Graph Data'} />;
   }
 
   return (

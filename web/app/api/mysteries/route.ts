@@ -1,6 +1,6 @@
 import { API_URL } from '@/config';
 import { ApiMysteryListResponse } from '@/types';
-import { fetchApi } from '@/utils';
+import { fetchApi } from '@/utils/networkUtils';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {

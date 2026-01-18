@@ -1,5 +1,5 @@
 import { TTSRequest, TTSResponse, TTSWarmupResponse } from '@/types';
-import { fetchApi } from '@/utils';
+import { clientFetch } from '@/utils';
 import { create } from 'zustand';
 
 interface QuoteState {
@@ -40,12 +40,17 @@ export const useQuoteStore = create<QuoteStore>()((set) => ({
 
     try {
       const baseUrl = window.location.origin;
-      const warmupRes = await fetchApi<TTSWarmupResponse>(
+      const warmupRes = await clientFetch<TTSWarmupResponse>(
         new URL('/api/tts/warmup', baseUrl),
         { method: 'GET', signal: controller.signal },
       );
 
-      if (!warmupRes.ok || warmupRes.data.status === 'not_loaded') {
+      // Allow both 'disabled' (pre-generated audio) and 'warmed_up' (live TTS) statuses
+      if (
+        !warmupRes.ok ||
+        (warmupRes.data.status !== 'disabled' &&
+          warmupRes.data.status !== 'warmed_up')
+      ) {
         throw new Error('Model warmup failed. Model not loaded');
       }
 
@@ -62,7 +67,7 @@ export const useQuoteStore = create<QuoteStore>()((set) => ({
 
 async function fetchAudioUrl(id: string, text: string): Promise<string> {
   const baseUrl = window.location.origin;
-  const res = await fetchApi<TTSResponse>(new URL('/api/tts', baseUrl), {
+  const res = await clientFetch<TTSResponse>(new URL('/api/tts', baseUrl), {
     method: 'POST',
     body: JSON.stringify({ mystery_id: id, text } as TTSRequest),
   });

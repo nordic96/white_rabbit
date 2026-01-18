@@ -97,3 +97,11 @@ class CacheDirectoryError(WhiteRabbitException):
     """Raised when cache directory is invalid or inaccessible."""
     def __init__(self, message: str = "Cache directory error", details: Optional[Dict[str, Any]] = None):
         super().__init__(message=message, status_code=500, details=details)
+
+
+class AudioNotFoundError(WhiteRabbitException):
+    """Raised when pre-generated audio file is not found at the expected URL."""
+    def __init__(self, mystery_id: str, audio_url: str, details: Optional[Dict[str, Any]] = None):
+        message = f"Pre-generated audio not found for mystery '{mystery_id}'"
+        combined_details = {"audio_url": audio_url, **(details or {})}
+        super().__init__(message=message, status_code=404, details=combined_details)
