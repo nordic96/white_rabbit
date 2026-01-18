@@ -385,9 +385,93 @@ Components modified in this session:
 
 ---
 
+## Session Learnings - 2026-01-18 (Header Consolidation & Duplicate Code Removal)
+
+### Mistakes & Fixes
+
+- **Issue:** X-API-Key header duplicated across 9 frontend route files
+  - **Root Cause:** Each route manually constructed the same header instead of centralizing in utility
+  - **Fix:** Moved header injection to `fetchApi` utility function; removed from all 9 individual route files
+  - **Prevention:** Apply DRY principle - implement once in utilities, use everywhere. When adding new route that needs auth header, use existing utility instead of duplicating code.
+
+- **Issue:** Using `fetchApi` utility for binary audio data caused JSON parsing errors
+  - **Root Cause:** `fetchApi` automatically parses response as JSON; unsuitable for binary (WAV) audio route
+  - **Fix:** Switched audio route to use native `fetch()` API directly for binary data
+  - **Prevention:** Know capabilities of utility functions - `fetchApi` is JSON-only. For binary/streaming/non-JSON responses, use native fetch API.
+
+### Patterns Discovered
+
+- **Pattern:** Centralized API Authentication in Utilities
+  - **Context:** Multiple route handlers and components need to add API key header to requests
+  - **Implementation:**
+    ```typescript
+    // utils/fetchApi.ts - Centralized location
+    export async function fetchApi<T>(url: string | URL, options?: RequestInit) {
+      const headers = {
+        ...options?.headers,
+        "X-API-Key": process.env.API_KEY // Only defined here
+      };
+      return fetch(url, { ...options, headers });
+    }
+
+    // In route handlers - just import and use
+    import { fetchApi } from '@/utils/api';
+    const res = await fetchApi('/api/endpoint');
+    ```
+  - **Key Detail:** Define sensitive values (API keys, auth tokens) as close to usage as possible, not in shared config modules. Centralize usage pattern in utilities to enforce consistency.
+
+- **Pattern:** Detecting When to Use Native Fetch vs. Utility Wrappers
+  - **Context:** Choosing between fetchApi utility and native fetch for different response types
+  - **Implementation:**
+    ```typescript
+    // Use fetchApi for JSON responses
+    const data = await fetchApi<ResponseType>('/api/endpoint');
+
+    // Use native fetch for binary/streaming
+    const audioResponse = await fetch('/api/audio/mystery-123.wav');
+    const audioBlob = await audioResponse.blob();
+
+    // Use native fetch for custom response handling
+    const customRes = await fetch('/api/endpoint', {
+      signal: abortController.signal  // custom abort handling
+    });
+    ```
+  - **Key Detail:** Understand what each utility does - fetchApi assumes JSON parsing. For binary, streams, or custom parsing, use native fetch.
+
+- **Pattern:** Identifying Duplicate Code Patterns Across Route Files
+  - **Context:** Multiple route handlers with nearly identical header/auth logic
+  - **Implementation:** When creating new route, check existing routes for similar patterns before implementing from scratch. Consolidate common patterns into utilities.
+  - **Key Detail:** Periodically audit route files for duplication using grep; consolidate when patterns are found
+
+### Debugging Wins
+
+- **Problem:** Identifying all locations where API key was manually being set
+  - **Approach:** Searched codebase for "X-API-Key" header patterns in frontend route files
+  - **Tool/Technique:** Used `grep -r "X-API-Key" app/` to find all manual header injections; counted 9 files
+  - **Result:** Consolidated all into single `fetchApi` utility for DRY principle
+
+- **Problem:** Audio route returning JSON parse errors instead of audio data
+  - **Approach:** Traced error to `fetchApi` response parsing; realized fetchApi parses all responses as JSON
+  - **Tool/Technique:** Examined fetchApi utility signature; confirmed it calls `response.json()`
+  - **Result:** Switched audio route to native fetch to bypass JSON parser for binary data
+
+### Performance Notes
+
+- Centralizing API key header in `fetchApi` eliminates 9 redundant header definitions; cleaner code with no performance impact
+- Native fetch for binary data avoids unnecessary JSON parsing overhead
+- DRY principle: implementing once in utilities vs. 9x duplication reduces maintenance burden by 90%
+
+### Code Quality Improvements
+
+- Removed 9x duplicate header code snippets (20+ lines reduced)
+- Eliminated exposure surface of API_KEY by defining inline where needed instead of exporting from shared modules
+- Improved code clarity by using appropriate tool for each data type (fetchApi for JSON, native fetch for binary)
+
+---
+
 **Document Version:** 2.2
-**Last Updated:** 2026-01-15
-**Source:** Health Check Implementation + Global Search Session + SearchBar Refactoring (Issue #27) + PR #44 Theme Changes & UI Fixes
+**Last Updated:** 2026-01-18
+**Source:** Health Check Implementation + Global Search Session + SearchBar Refactoring (Issue #27) + PR #44 Theme Changes & UI Fixes + PR #54 Header Consolidation Session
 
 ---
 

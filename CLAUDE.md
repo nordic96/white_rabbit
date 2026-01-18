@@ -316,6 +316,10 @@ Backend settings are managed through Pydantic Settings in `api/src/config.py` wi
 - `rate_limit_search`: Search endpoint rate limit (default: "60/minute")
 - `rate_limit_default`: Default rate limit for other endpoints (default: "100/minute")
 
+**API Key Authentication:**
+- `API_KEY`: Server-side only API key for backend authentication (REQUIRED in production)
+- `API_KEY_REQUIRED`: Boolean to enable/disable API key requirement (default: False for local development)
+
 All settings support `.env` and `.env.local` files for local development.
 
 ### Frontend Environment Variables
@@ -324,7 +328,70 @@ All settings support `.env` and `.env.local` files for local development.
 - `NEXT_PUBLIC_AUDIO_BASE_URL`: Base URL for pre-generated audio files (e.g., https://cdn.example.com/audio) - Used when TTS_ENABLED is false in backend
 - Falls back to `/audio` if not set
 
+**API Configuration:**
+- `API_KEY`: Frontend API key for backend requests (optional, passed in X-API-Key header)
+- `API_URL`: Backend API URL (default: http://localhost:8000)
+
 ## Security Features
+
+### API Key Authentication
+
+API key authentication is implemented across both backend and frontend to secure backend API endpoints.
+
+**Backend Implementation (`api/src/middleware.py`):**
+
+```python
+from secrets import compare_digest
+
+# API key validation function
+def verify_api_key(request: Request) -> None:
+    """Verify API key from X-API-Key header using timing-safe comparison."""
+    if not settings.api_key_required:
+        return
+
+    api_key = request.headers.get("X-API-Key")
+
+    if not api_key or not compare_digest(api_key, settings.api_key):
+        raise HTTPException(status_code=401, detail="Invalid API key")
+```
+
+**Key security patterns:**
+- Use `secrets.compare_digest()` for timing-safe string comparison (prevents timing attacks)
+- API key is read from environment at startup in Settings validation
+- All FastAPI routers include `dependencies=API_KEY_DEPENDENCIES` to enforce authentication
+- `API_KEY_REQUIRED` setting allows disabling authentication for local development
+
+**Frontend Implementation (`web/utils/networkUtils.ts`):**
+
+```typescript
+// fetchApi automatically adds X-API-Key header for JSON requests
+export async function fetchApi<T>(
+  endpoint: string,
+  options?: RequestOptions
+): Promise<T> {
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+    'X-API-Key': process.env.API_KEY || '',
+    ...options?.headers,
+  };
+
+  // Make request with API key
+}
+
+// Native fetch for binary data (audio files)
+const response = await fetch(`${baseUrl}${audioUrl}`, {
+  headers: { 'X-API-Key': process.env.API_KEY || '' }
+});
+```
+
+**Authentication Flow:**
+1. Frontend reads `API_KEY` from environment at build time
+2. `fetchApi` utility automatically includes X-API-Key header in all JSON requests
+3. Audio route uses native fetch with inline API key for binary data compatibility
+4. Backend middleware validates API key on every request if `API_KEY_REQUIRED=true`
+5. Invalid/missing keys return 401 Unauthorized
+
+**Important:** Keep `API_KEY` server-side only. Do NOT use `NEXT_PUBLIC_API_KEY` as this exposes the key to clients.
 
 ### Rate Limiting
 
@@ -361,6 +428,36 @@ async def verify_search_index(app: FastAPI) -> None:
 ```
 
 If the index is not found, a `DatabaseIndexError` is raised with hint to run `api/docs/create_fulltext_index.cypher`.
+
+### Environment Variable Security
+
+**Best practices for handling sensitive configuration:**
+
+1. **Server-side Only Secrets:**
+   - Define sensitive environment variables inline in code, not exported from config modules
+   - Example: `api_key = os.getenv("API_KEY")` instead of `from config import api_key`
+   - This prevents accidental leakage through import inspection
+
+2. **Environment Variable Validation:**
+   - Validate required environment variables at startup to catch missing config early
+   - Use Pydantic Settings with required fields that raise errors if missing
+   - Example in `api/src/config.py`:
+     ```python
+     class Settings(BaseSettings):
+         api_key: str = Field(default="")
+         api_key_required: bool = Field(default=False)
+
+         @field_validator('api_key')
+         def validate_api_key(cls, v: str) -> str:
+             if api_key_required and not v:
+                 raise ValueError("API_KEY is required when API_KEY_REQUIRED=true")
+             return v
+     ```
+
+3. **Development vs Production:**
+   - Local development: `API_KEY_REQUIRED=false` to allow unauthenticated requests
+   - Production (Vercel): `API_KEY_REQUIRED=true` and set `API_KEY` environment variable
+   - Never commit sensitive keys to version control; use platform-specific secret management
 
 ### Input Validation
 
