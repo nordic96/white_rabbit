@@ -1,6 +1,6 @@
 import { API_URL } from '@/config';
 import { GraphResponse } from '@/types';
-import { fetchApi } from '@/utils';
+import { fetchApi } from '@/utils/networkUtils';
 import { NextResponse } from 'next/server';
 
 export async function GET() {

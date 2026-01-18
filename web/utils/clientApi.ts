@@ -1,47 +1,46 @@
 /**
- * Server-only API utilities for making authenticated requests to the backend.
- * This file should ONLY be imported in Next.js API routes (server-side).
+ * Client-side API utilities for making requests to Next.js API routes.
+ * This file is safe to import in client components and stores.
+ *
+ * NOTE: This fetches from Next.js API routes (e.g., /api/mysteries),
+ * NOT directly from the backend. The API routes handle backend authentication.
  */
-import 'server-only';
 
 import type { ErrorResponse } from '@/types/errorResponse';
-import { URL } from 'url';
 
 import { ApiError, createApiError, type ApiResponse } from './apiTypes';
 
 /**
- * Server-side fetch wrapper that handles error responses consistently.
- * Automatically injects the API_KEY header for backend authentication.
+ * Client-side fetch wrapper that handles error responses consistently.
+ * Use this in stores, client components, and any browser-side code.
  *
- * WARNING: This function should ONLY be used in Next.js API routes.
- * For client-side code (stores, components), use `clientFetch` from `@/utils/clientApi`.
+ * This function calls Next.js API routes which proxy to the backend
+ * with proper authentication. It does NOT include API keys.
  *
- * @param url - The URL to fetch from (should be the backend API URL)
+ * @param url - The URL to fetch from (should be a Next.js API route like /api/mysteries)
  * @param options - Optional fetch configuration
  * @returns A discriminated union with success or error
  *
  * @example
  * ```typescript
- * // In a Next.js API route (app/api/mysteries/route.ts)
- * const result = await fetchApi<Mystery>(`${API_URL}/api/mysteries/123`);
+ * // In a Zustand store or client component
+ * const result = await clientFetch<MysteryDetail>('/api/mysteries/123');
  * if (result.ok) {
- *   return NextResponse.json(result.data);
+ *   console.log(result.data);
  * } else {
- *   return NextResponse.json(result.error, { status: result.error.statusCode });
+ *   console.error(result.error.message);
  * }
  * ```
  */
-export async function fetchApi<T>(
+export async function clientFetch<T>(
   url: string | URL,
   options?: RequestInit,
 ): Promise<ApiResponse<T>> {
   try {
-    const API_KEY = process.env.API_KEY;
     const response = await fetch(url, {
       ...options,
       headers: {
         'Content-Type': 'application/json',
-        ...(API_KEY && { 'X-API-Key': API_KEY }),
         ...options?.headers,
       },
     });

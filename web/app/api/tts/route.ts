@@ -1,6 +1,6 @@
 import { API_URL } from '@/config';
 import { TTSResponse } from '@/types';
-import { fetchApi } from '@/utils';
+import { fetchApi } from '@/utils/networkUtils';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest): Promise<NextResponse> {

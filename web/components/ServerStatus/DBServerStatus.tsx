@@ -1,7 +1,7 @@
 'use client';
 
 import { DBHealthResponse, DBStatus } from '@/types';
-import { ApiError, cn, fetchApi } from '@/utils';
+import { ApiError, clientFetch, cn } from '@/utils';
 import { useEffect, useRef, useState } from 'react';
 
 const INTERVAL = 10000;
@@ -16,7 +16,7 @@ export default function DBServerStatus() {
       const baseUrl = window.location.href;
       const url = new URL('/api/health', baseUrl);
       try {
-        const res = await fetchApi<DBHealthResponse>(url);
+        const res = await clientFetch<DBHealthResponse>(url);
         if (res.ok) {
           setDbStatus(res.data.database.status);
           setDbError(null);

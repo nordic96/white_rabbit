@@ -1,5 +1,5 @@
 import { SearchResponse, SearchResultItem } from '@/types';
-import { fetchApi } from '@/utils';
+import { clientFetch } from '@/utils';
 import { create } from 'zustand';
 import { useMysteryStore } from './mysteryStore';
 import { useFilterStore } from './filterStore';
@@ -123,7 +123,7 @@ export const useSearchStore = create<SearchStore>()((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      const result = await fetchApi<SearchResponse>(
+      const result = await clientFetch<SearchResponse>(
         `/api/search?q=${encodeURIComponent(query)}&limit=${DEFAULT_RESULT_LIMIT}`,
         { signal: currentController.signal },
       );

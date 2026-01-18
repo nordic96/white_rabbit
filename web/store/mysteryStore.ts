@@ -1,5 +1,5 @@
 import { MysteryDetail } from '@/types';
-import { fetchApi, ResourceNotFoundError } from '@/utils';
+import { clientFetch, ResourceNotFoundError } from '@/utils';
 import { create } from 'zustand';
 
 interface MysteryState {
@@ -47,7 +47,7 @@ export const useMysteryStore = create<MysteryStore>()((set, get) => ({
   fetchMysteryDetail: async (id: string) => {
     set({ isLoading: true, error: null });
 
-    const result = await fetchApi<MysteryDetail>(`/api/mysteries/${id}`);
+    const result = await clientFetch<MysteryDetail>(`/api/mysteries/${id}`);
 
     if (result.ok) {
       set((state) => ({
