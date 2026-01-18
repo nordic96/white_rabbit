@@ -22,7 +22,7 @@ const roboto = Roboto({
 export const metadata: Metadata = {
   title: 'White Rabbit',
   description:
-    'Mystery Knowledge Database visualisation web app built with Neo4J and NextJS',
+    'Personal Project that depicts a Mystery Knowledge Database visualisation web app built with Neo4J, NextJS, integrated with Kokoro HuggingFace Text-to-Speech (TTS) model',
 };
 
 type Props = Readonly<{
