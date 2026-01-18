@@ -1,4 +1,15 @@
 {
+  "Footer": {
+    "createdBy": "Created by",
+    "authorName": "Stephen Ko",
+    "disclaimer": "This is a personal project for educational purposes. All mystery content is sourced from historical records and folklore.",
+    "allRightsReserved": "All rights reserved.",
+    "links": {
+      "home": "Home",
+      "linkedin": "LinkedIn",
+      "github": "GitHub"
+    }
+  },
   "Quotes": {
     "m-bea81975-2695-4e8a-85f4-d2448e389e18": "Near the corner where the labyrinth ends stands a pyramid two hundred and40 feet high, on which great figures are cut. A passage to this has been made underground.",
     "m-5d74027e-adaa-47ff-85b9-8394b29c31d7": "The letters are unknown to us, and the matter remains hidden, as if wrapped in deliberate obscurity.",
