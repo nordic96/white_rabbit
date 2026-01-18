@@ -893,3 +893,205 @@ git checkout -b dev_search_optimization
   - Examples: TTS, image generation, complex report generation, data preprocessing
 
 ---
+
+## Session Learnings - 2026-01-18 (API Key Security Refactoring - PR #54)
+
+### Mistakes & Fixes
+
+- **Issue:** Typo "Verifiy" instead of "Verify" in middleware.py API key validation
+  - **Root Cause:** Simple typo in authentication constant name
+  - **Fix:** Changed `API_KEY_VERIFIY_HEADER` to `API_KEY_VERIFY_HEADER` in middleware.py
+  - **Prevention:** Use IDE spell-checker and run linters (pylint, flake8) to catch typos in identifiers
+
+- **Issue:** Using `fetchApi` for binary audio data caused JSON parsing errors
+  - **Root Cause:** `fetchApi` utility automatically parses response as JSON; used for binary (WAV) audio route which caused type mismatch
+  - **Fix:** Switched audio route to use native `fetch()` API directly instead of `fetchApi` wrapper
+  - **Prevention:** Know the capabilities of utility functions - `fetchApi` is JSON-only; use native fetch for binary/streaming responses
+
+- **Issue:** API key exposed in frontend route files (9 locations with duplicate X-API-Key headers)
+  - **Root Cause:** Each frontend route manually constructed X-API-Key header instead of centralizing in one place
+  - **Fix:** Moved API key header injection to `fetchApi` utility function; removed from all 9 individual route files
+  - **Prevention:** Apply DRY principle - implement once in utilities, use everywhere
+
+- **Issue:** API key comparison vulnerable to timing attacks
+  - **Root Cause:** Simple string equality check `if api_key == expected_key` takes different times for correct vs. wrong keys
+  - **Fix:** Used `secrets.compare_digest()` for timing-safe comparison in middleware.py
+  - **Prevention:** Always use `secrets.compare_digest()` for security-sensitive string comparisons (API keys, tokens, passwords)
+
+- **Issue:** Empty API key not caught when API_KEY_REQUIRED=True
+  - **Root Cause:** No validation that required config value is non-empty during startup
+  - **Fix:** Added startup validation in config.py: `if API_KEY_REQUIRED and not API_KEY: raise ValueError(...)`
+  - **Prevention:** For "required" config values, validate not just presence but also non-empty; add validation in settings class or at app startup
+
+- **Issue:** API_KEY constant was exported from config module, increasing exposure surface
+  - **Root Cause:** Made API key available globally to any module that imported config
+  - **Fix:** Changed to inline `process.env.API_KEY` definitions within each function that needs it (especially in fetchApi and audio route)
+  - **Prevention:** Follow principle of least privilege - define sensitive values as close to usage as possible, not in shared config modules
+
+### Patterns Discovered
+
+- **Pattern:** Centralized API Key Dependency Constant
+  - **Context:** Sharing API key validation logic across multiple routers without duplicating code
+  - **Implementation:**
+    ```python
+    # middleware.py - Define once
+    API_KEY_DEPENDENCIES = Depends(verify_api_key)
+
+    # In each router file
+    from middleware import API_KEY_DEPENDENCIES
+
+    @router.post("/endpoint")
+    async def handler(verified: str = API_KEY_DEPENDENCIES):
+        # verified contains the API key that passed validation
+    ```
+  - **Key Detail:** Instead of repeating `Depends(verify_api_key)` in 9+ routes, define constant once and import everywhere
+
+- **Pattern:** Timing-Safe String Comparison for Security Credentials
+  - **Context:** Comparing API keys, tokens, or other secrets where timing variations could leak information
+  - **Implementation:**
+    ```python
+    import secrets
+
+    # BAD - Timing leak: exits early on first mismatched character
+    if api_key == expected_key:
+        return True
+
+    # GOOD - Constant time, compares all characters regardless
+    if secrets.compare_digest(api_key, expected_key):
+        return True
+    ```
+  - **Key Detail:** `secrets.compare_digest()` always compares full strings; prevents attackers from using response timing to guess valid keys
+
+- **Pattern:** Inline Sensitive Configuration vs. Exported Constants
+  - **Context:** Minimizing exposure of API keys and secrets to only the functions that need them
+  - **Implementation:**
+    ```python
+    # BAD - API key available everywhere
+    # config.py
+    API_KEY = os.getenv("API_KEY")
+
+    # BAD - Any module can import and access
+    from config import API_KEY
+
+    # GOOD - Define where used
+    # routes/audio.py
+    async def audio_handler():
+        api_key = os.getenv("API_KEY")  # Only this handler accesses it
+        # ...
+
+    # utils/fetchApi.ts
+    export async function fetchApi(...) {
+        const headers = {
+            "X-API-Key": process.env.API_KEY  // Only this utility accesses it
+        }
+        // ...
+    }
+    ```
+  - **Key Detail:** Inline definitions limit attack surface; exported constants available to more code than necessary
+
+- **Pattern:** Dependency Injection with FastAPI Dependencies for Auth
+  - **Context:** Sharing API key validation across multiple endpoints without code duplication
+  - **Implementation:**
+    ```python
+    # Define in middleware.py
+    async def verify_api_key(x_api_key: str = Header(None)) -> str:
+        if not x_api_key:
+            raise HTTPException(status_code=401, detail="Missing API key")
+        if not secrets.compare_digest(x_api_key, settings.API_KEY):
+            raise HTTPException(status_code=403, detail="Invalid API key")
+        return x_api_key
+
+    API_KEY_DEPENDENCIES = Depends(verify_api_key)
+
+    # Use in routers
+    @router.get("/mysteries")
+    async def get_mysteries(verified: str = API_KEY_DEPENDENCIES):
+        # Endpoint automatically protected; FastAPI calls verify_api_key
+    ```
+  - **Key Detail:** Dependency injection ensures consistent validation; FastAPI injects verified value as parameter
+
+### Debugging Wins
+
+- **Problem:** Identifying all locations where API key was manually being set
+  - **Approach:** Searched codebase for "X-API-Key" header patterns in frontend route files
+  - **Tool/Technique:** Used `grep -r "X-API-Key" app/` to find all manual header injections; counted 9 files
+  - **Result:** Consolidated all into single `fetchApi` utility for DRY principle
+
+- **Problem:** Discovering API key was vulnerable to timing attacks
+  - **Approach:** Reviewed middleware.py authentication logic and recognized simple `==` comparison
+  - **Tool/Technique:** Security best practice knowledge; referenced Python secrets module documentation
+  - **Result:** Implemented `secrets.compare_digest()` for constant-time comparison
+
+- **Problem:** Audio route returning JSON parse errors instead of audio data
+  - **Approach:** Traced error to `fetchApi` response parsing; realized fetchApi parses all responses as JSON
+  - **Tool/Technique:** Examined fetchApi utility signature; confirmed it calls `response.json()`
+  - **Result:** Switched audio route to native fetch to bypass JSON parser for binary data
+
+- **Problem:** Understanding exposure surface of API_KEY in config.py
+  - **Approach:** Reviewed principle of least privilege; traced all files that imported config module
+  - **Tool/Technique:** Searched for `from config import` and `import config` to see what could access API key
+  - **Result:** Defined API_KEY inline where needed instead of exporting from config
+
+### Performance Notes
+
+- Timing-safe comparison has negligible performance cost (<1ms difference) compared to simple `==`; security benefit far outweighs tiny overhead
+- Dependency injection with FastAPI's `Depends()` is evaluated once per request; reusing constant `API_KEY_DEPENDENCIES` has no overhead vs. inline `Depends(verify_api_key)`
+- Centralizing API key header in `fetchApi` eliminates 9 redundant header definitions; cleaner code with no performance impact
+- Empty string validation at startup (single check) has zero runtime impact; catches misconfiguration immediately
+
+### Security Best Practices Added
+
+1. **Always use `secrets.compare_digest()` for security-sensitive string comparisons** - prevents timing attacks on API keys, tokens, passwords
+2. **Define secrets as close to usage as possible** - minimizes exposure surface; don't export from config modules
+3. **Validate "required" config values are non-empty** - catch misconfiguration at startup, not during requests
+4. **Use DRY principle for auth dependencies** - define verification once, reuse across all endpoints via dependency injection
+5. **Never use general utility functions for specialized data types** - don't use JSON parsers for binary; use specialized handlers
+
+---
+
+## Session Learnings - 2026-01-18 (Bulk Router Updates & Security Audits)
+
+### Mistakes & Fixes
+
+- **Issue:** Multiple router files importing outdated/incorrect dependencies
+  - **Root Cause:** Dependency updates made in one router but not propagated to similar routers
+  - **Fix:** Updated all 4 backend router files with consistent import pattern
+  - **Prevention:** When updating router dependencies, use bulk find-and-replace across all routers to ensure consistency; verify all routers have matching imports before committing
+
+### Patterns Discovered
+
+- **Pattern:** Consistent Router Import Structure Across Multiple Files
+  - **Context:** Multiple routers (search, graph, nodes, etc.) importing from same dependency sources
+  - **Implementation:**
+    ```python
+    # All routers follow this pattern:
+    from fastapi import APIRouter, HTTPException
+    from services.search_service import SearchService
+    # Dependency versions should match across all routers
+    ```
+  - **Key Detail:** When updating any router's imports, verify all other routers have matching versions to prevent inconsistent behavior
+
+- **Pattern:** Bulk Refactoring Across Router Files
+  - **Context:** Applying same refactoring to multiple routers (4+ files with similar structure)
+  - **Implementation:** Rather than manually updating each router one-by-one, use find-replace with file-specific verification
+  - **Key Detail:** Group related routers and update together in single batch operation; verify test results apply across all updated routers
+
+### Debugging Wins
+
+- **Problem:** Inconsistent imports across router files causing potential type mismatches
+  - **Approach:** Searched for import patterns across all router files to identify mismatches
+  - **Tool/Technique:** Used `grep -r "from.*import"` to find all import statements and compared versions
+  - **Result:** Identified missing updates in 3 of 4 routers; applied batch updates
+
+### Performance Notes
+
+- Batch updating routers prevents import inconsistency bugs
+- Consistent imports across routers enables safe dependency version upgrades
+- Grouping router updates reduces testing overhead (test once for consistency rather than per-router)
+
+---
+
+**Document Version:** 2.3
+**Last Updated:** 2026-01-18
+**Source:** PR #54 (API Key Security Refactoring) + PR Review Response + Bulk Router Updates Session
+**Maintainer:** Claude Code Backend Agent
