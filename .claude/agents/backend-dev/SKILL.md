@@ -1091,7 +1091,276 @@ git checkout -b dev_search_optimization
 
 ---
 
-**Document Version:** 2.3
+**Document Version:** 2.5
 **Last Updated:** 2026-01-18
-**Source:** PR #54 (API Key Security Refactoring) + PR Review Response + Bulk Router Updates Session
+**Source:** PR #54 (API Key Security Refactoring) + PR Review Response + Bulk Router Updates Session + Client/Server API Separation Session
 **Maintainer:** Claude Code Backend Agent
+
+---
+
+## Automation Opportunities - 2026-01-18
+
+### Potential Commands
+
+- **`/audit-dependencies`**
+  - **Purpose:** Verify all routers have consistent import versions and dependency structure
+  - **Trigger:** After updating any router; bulk dependency refactors; pre-merge checks
+  - **Complexity:** Medium
+  - **Implementation Notes:** Compare import statements across all routers (search_router.py, graph_router.py, etc.); flag mismatches; suggest unified imports
+
+- **`/add-dependency-injection`**
+  - **Purpose:** Add `Depends(verify_api_key)` decorator to all unprotected router endpoints
+  - **Trigger:** After updating authentication requirements; PR review step for new endpoints
+  - **Complexity:** Medium
+  - **Implementation Notes:** Scan routers for endpoints without auth decorator; interactive mode to confirm which endpoints should be protected; apply changes
+
+- **`/find-hardcoded-secrets`**
+  - **Purpose:** Search for hardcoded credentials, API keys, passwords in Python code
+  - **Trigger:** Scheduled security audits; pre-deployment checks; code review
+  - **Complexity:** Low
+  - **Implementation Notes:** Search for patterns like "password=", "api_key=", string literals that look like secrets; compare against environment variables
+
+- **`/bulk-router-update`**
+  - **Purpose:** Apply same import/dependency change across multiple router files simultaneously
+  - **Trigger:** When updating shared dependencies; refactoring service layer imports
+  - **Complexity:** Medium
+  - **Implementation Notes:** Accept find pattern, replacement pattern, file glob; apply to all matching routers; verify syntax
+
+### Workflow Improvements
+
+- **Current:** Manually update imports in one router → manually check 3 other routers → manually apply same changes to each
+  - **Proposed:** `/audit-dependencies` to find mismatches → `/bulk-router-update` to apply changes to all at once → single test run
+  - **Benefit:** Reduces 20+ minutes of repetitive updates to 3-5 minutes; ensures consistency; prevents missed routers
+
+- **Current:** Manually add `Depends(verify_api_key)` to each new endpoint in each router
+  - **Proposed:** Pre-commit hook or `/add-dependency-injection` command that audits routers and suggests missing protections
+  - **Benefit:** Prevents accidentally exposing unprotected endpoints; centralizes auth logic verification
+
+- **Current:** Manual grep search for potential hardcoded secrets in PR reviews
+  - **Proposed:** `/find-hardcoded-secrets` command with regex patterns for common credential formats
+  - **Benefit:** Catches secrets before they reach main branch; faster than manual review; prevents accidental exposure
+
+- **Current:** Separate dependency updates across 4 routers requires 4 separate edit operations
+  - **Proposed:** Single bulk operation that groups routers and applies changes together
+  - **Benefit:** Atomic consistency across related files; single verification; less error-prone
+
+### Agent Ideas
+
+- **Agent Name:** Router Configuration Auditor
+  - **Specialization:** Verifying router consistency, dependency injection, and security across multiple FastAPI routers
+  - **Tools Needed:** Grep, Python AST parser for dependency analysis, file editing for bulk updates
+  - **Key Responsibilities:**
+    1. Audit all routers for import consistency; flag version mismatches
+    2. Verify all endpoints have appropriate security decorators (`@limiter.limit()`, `Depends(verify_api_key)`)
+    3. Check for hardcoded credentials or sensitive strings
+    4. Generate consistency report comparing all routers
+    5. Apply bulk updates to multiple routers with verification
+  - **Trigger Scenarios:**
+    - After updating any router (suggest consistency audit)
+    - New security requirements (add to all routers)
+    - Dependency updates (apply to all consistently)
+    - Pre-PR checks on router files
+
+### Security Audit Pattern
+
+The development session revealed a scalable pattern for security audits:
+
+1. **Identify Pattern:** Search for specific security-sensitive code (e.g., "X-API-Key" headers, hardcoded passwords, missing auth decorators)
+2. **Classify Files:** Determine which files need changes based on file type/location
+3. **Bulk Update:** Apply changes consistently across all classified files
+4. **Verify:** Test that changes work across all files; no regressions
+
+This pattern could be automated for:
+- API key injection locations (consolidate to utilities)
+- Rate limiting decorators (ensure all expensive endpoints protected)
+- Error handling (ensure all routers catch specific exceptions, not bare Exception)
+- Parameterized queries (verify all database access uses parameters, not f-strings)
+
+**Recommended Implementation:**
+- Create audit templates for each security concern
+- Build CLI tool to run audits and report violations
+- Generate suggested fixes with impact analysis
+- Allow dry-run mode before applying changes
+
+---
+
+## Session Learnings - 2026-01-18 (Comprehensive Client/Server API Separation & Security)
+
+### Mistakes & Fixes
+
+- **Issue:** Timing attack vulnerability in API key comparison
+  - **Root Cause:** Using simple string equality `if api_key == expected_key` which returns early on first mismatch, leaking timing information
+  - **Fix:** Replaced with `secrets.compare_digest()` which always compares full strings in constant time
+  - **Prevention:** Always use `secrets.compare_digest()` for any security-sensitive string comparison (API keys, tokens, passwords)
+
+- **Issue:** Empty API key not validated when API_KEY_REQUIRED=True
+  - **Root Cause:** Config validation didn't check that required values were non-empty, only that they existed
+  - **Fix:** Added Pydantic field validator: `if api_key_required and not api_key: raise ValueError("API_KEY required but empty")`
+  - **Prevention:** For "required" config values, validate both existence AND non-empty state at startup
+
+- **Issue:** Broken audio route due to using JSON parser on binary data
+  - **Root Cause:** Audio route was trying to use `fetchApi` utility which parses all responses as JSON
+  - **Fix:** Switched audio route to native `fetch()` for binary data handling; only JSON routes use fetchApi
+  - **Prevention:** Know the capabilities of utility functions; use specialized handlers for binary/streaming data
+
+- **Issue:** API_KEY_DEPENDENCIES constant had typo "VERIFIY" instead of "VERIFY"
+  - **Root Cause:** Simple typo in identifier name
+  - **Fix:** Corrected to `API_KEY_VERIFY_HEADER`
+  - **Prevention:** Use IDE spell-checker and linters (pylint, flake8) to catch typos
+
+- **Issue:** Middleware couldn't be tested without circular imports
+  - **Root Cause:** API_KEY_DEPENDENCIES defined in middleware but imported in routers; circular dependency potential
+  - **Fix:** Defined `API_KEY_DEPENDENCIES = Depends(verify_api_key)` constant in middleware for reuse across routers
+  - **Prevention:** Define shared dependency constants in central location (middleware); import in routers
+
+### Patterns Discovered
+
+- **Pattern:** Centralized API Key Dependency Injection
+  - **Context:** Multiple routers need to require API key validation without duplicating verification code
+  - **Implementation:**
+    ```python
+    # middleware.py - Define once
+    from fastapi import Depends, Request, Header, HTTPException
+    import secrets
+
+    async def verify_api_key(x_api_key: str = Header(None)) -> str:
+        """Verify API key from X-API-Key header using timing-safe comparison."""
+        if not settings.api_key_required:
+            return ""
+
+        if not x_api_key or not secrets.compare_digest(x_api_key, settings.api_key):
+            raise HTTPException(status_code=401, detail="Invalid API key")
+        return x_api_key
+
+    # Reusable dependency constant
+    API_KEY_DEPENDENCIES = Depends(verify_api_key)
+
+    # In routers - just import and use
+    from middleware import API_KEY_DEPENDENCIES
+
+    @router.post("/endpoint")
+    async def handler(_: str = API_KEY_DEPENDENCIES):
+        # Endpoint automatically protected; verification happens before handler
+    ```
+  - **Key Detail:** Define dependency constant once in middleware; reuse across all routers via import; FastAPI injects verified result
+
+- **Pattern:** Timing-Safe Credential Comparison
+  - **Context:** Comparing API keys, tokens, or passwords where timing variations could leak information to attackers
+  - **Implementation:**
+    ```python
+    import secrets
+
+    # Bad - Exits on first mismatched character (0.1ms for wrong first char, 10ms for correct key)
+    if api_key == expected_key:
+        return True
+
+    # Good - Always compares full strings (constant ~10ms regardless of match)
+    if secrets.compare_digest(api_key, expected_key):
+        return True
+    ```
+  - **Key Detail:** Timing attacks are real; attackers can use response time differences to brute-force credentials; `secrets.compare_digest()` prevents this
+
+- **Pattern:** Startup Validation for Required Configuration
+  - **Context:** Catching misconfiguration (missing API_KEY when API_KEY_REQUIRED=true) at startup instead of at first request
+  - **Implementation:**
+    ```python
+    from pydantic import BaseSettings, Field, field_validator
+
+    class Settings(BaseSettings):
+        api_key_required: bool = Field(default=False)
+        api_key: str = Field(default="")
+
+        @field_validator('api_key')
+        def validate_api_key(cls, v: str, info) -> str:
+            """Ensure API_KEY is non-empty when required."""
+            if info.data.get('api_key_required') and not v:
+                raise ValueError("API_KEY is required when API_KEY_REQUIRED=true but was empty")
+            return v
+    ```
+  - **Key Detail:** Pydantic validators run at config load time; catches issues immediately instead of on first request
+
+- **Pattern:** Least Privilege Principle for Secrets
+  - **Context:** Minimizing exposure surface of sensitive values (API keys, database passwords)
+  - **Implementation:**
+    ```python
+    # Bad - API key available everywhere
+    from config import api_key
+
+    # Good - Define where used
+    async def verify_api_key(x_api_key: str = Header(None)) -> str:
+        api_key = settings.api_key  # Only this function accesses it
+        if not secrets.compare_digest(x_api_key, api_key):
+            raise HTTPException(status_code=401)
+    ```
+  - **Key Detail:** Import secrets directly in functions/handlers where needed; don't expose through module-level imports
+
+- **Pattern:** Backend → Next.js API → Client Request Flow
+  - **Context:** Proper layering of API authentication across fullstack Next.js + FastAPI backend
+  - **Implementation:**
+    ```
+    Browser Client
+      ↓ HTTP request
+    Next.js API Route (app/api/mystery/route.ts)
+      ↓ fetchApi() adds X-API-Key header
+    FastAPI Backend (api/src/main.py)
+      ↓ verify_api_key() validates header
+    Database Query
+    ```
+  - **Key Detail:** API key only added at API route layer (server-side); client code never has access to secrets; backend validates on every request
+
+### Debugging Wins
+
+- **Problem:** Identifying all locations where API_KEY was being set
+  - **Approach:** Searched for X-API-Key header patterns across frontend code
+  - **Tool/Technique:** Used `grep -r "X-API-Key"` to find manual header injections in 9 frontend route files
+  - **Result:** Consolidated all into single `fetchApi` utility in backend
+
+- **Problem:** Discovering timing attack vulnerability
+  - **Approach:** Reviewed middleware.py authentication logic and recognized simple `==` comparison
+  - **Tool/Technique:** Security best practice knowledge; consulted Python secrets module documentation
+  - **Result:** Implemented `secrets.compare_digest()` for constant-time comparison
+
+- **Problem:** Understanding why audio route was broken
+  - **Approach:** Traced error to `fetchApi` response parsing; realized it parses all responses as JSON
+  - **Tool/Technique:** Examined fetchApi utility code; confirmed it calls `response.json()`
+  - **Result:** Switched audio route to native fetch to bypass JSON parser for binary data
+
+- **Problem:** Ensuring API key validation happens on every request
+  - **Approach:** Traced dependency injection flow through FastAPI middleware
+  - **Tool/Technique:** Verified that `Depends()` decorators are invoked before route handlers
+  - **Result:** Confirmed validation happens for all decorated routes
+
+### Performance Notes
+
+- Timing-safe comparison has <1ms overhead compared to regular `==`; security benefit far outweighs cost
+- Dependency injection with `Depends()` evaluated once per request; reusing constant has no overhead
+- Startup validation (single check) has zero runtime cost; prevents bugs at deployment time
+- API_KEY_DEPENDENCIES constant in middleware prevents code duplication across 8+ routers
+
+### Security Best Practices Enforced
+
+1. **Always use `secrets.compare_digest()` for security-sensitive comparisons** - prevents timing attacks
+2. **Validate required config values are non-empty at startup** - catch misconfiguration immediately
+3. **Use dependency injection for auth validation** - centralize logic, prevent duplication
+4. **Follow least privilege principle** - define secrets close to usage, minimize exposure
+5. **Maintain client/server boundary** - client code never has access to API_KEY
+
+### Architecture Insights
+
+**Complete Request Flow:**
+
+1. **Client (Browser):** Makes HTTP request to `GET /api/mystery/123`
+2. **Next.js Route Handler:** Receives request, imports `fetchApi` from `@/utils/networkUtils` (server-only)
+3. **fetchApi Adds Header:** Injects `X-API-Key: ${process.env.API_KEY}` from environment
+4. **Backend Receives:** FastAPI endpoint gets request with X-API-Key header
+5. **Middleware Validates:** `verify_api_key()` uses `secrets.compare_digest()` to validate against `settings.api_key`
+6. **Route Handler Executes:** If validation passes, Neo4j query runs
+7. **Response Returned:** Data sent back through Next.js to client
+
+**Key Security Properties:**
+- Client never has API_KEY (only server environment)
+- Every request validated with timing-safe comparison
+- Empty API keys caught at startup, not at request time
+- Dependency injection prevents validation bypass
+
+---

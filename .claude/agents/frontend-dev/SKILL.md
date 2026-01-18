@@ -469,9 +469,195 @@ Components modified in this session:
 
 ---
 
-**Document Version:** 2.2
+**Document Version:** 2.4
 **Last Updated:** 2026-01-18
-**Source:** Health Check Implementation + Global Search Session + SearchBar Refactoring (Issue #27) + PR #44 Theme Changes & UI Fixes + PR #54 Header Consolidation Session
+**Source:** Health Check Implementation + Global Search Session + SearchBar Refactoring (Issue #27) + PR #44 Theme Changes & UI Fixes + PR #54 Header Consolidation + Client/Server API Separation Session
+**Maintainer:** Claude Code Frontend Agent
+
+---
+
+## Automation Opportunities - 2026-01-18
+
+### Potential Commands
+
+- **`/migrate-imports`**
+  - **Purpose:** Bulk migrate import paths across frontend code (e.g., `from '@/utils'` → `from '@/utils/networkUtils'` for API routes, or `clientFetch` for client components)
+  - **Trigger:** When creating new utility exports or refactoring API boundaries
+  - **Complexity:** Medium
+  - **Implementation Notes:** Should accept source pattern, destination pattern, and file filter (e.g., "app/api/**" for routes only)
+
+- **`/find-duplicate-headers`**
+  - **Purpose:** Scan codebase for duplicate header injection code (like X-API-Key header in 9 route files)
+  - **Trigger:** Before API security refactors; scheduled security audits
+  - **Complexity:** Low
+  - **Implementation Notes:** Search for common patterns like API key headers, CORS headers, auth tokens; group results by pattern
+
+- **`/audit-client-server-boundary`**
+  - **Purpose:** Verify client components never import from server-only modules (e.g., routes importing networkUtils)
+  - **Trigger:** After adding new `server-only` directives; pre-deployment security check
+  - **Complexity:** Medium
+  - **Implementation Notes:** Use TypeScript's module resolution to detect `server-only` imports in client code; flag violations with file locations
+
+### Workflow Improvements
+
+- **Current:** Manual grep to find all X-API-Key headers → manually update 9 files → test each
+  - **Proposed:** `/migrate-imports` command to identify duplicate code patterns + auto-consolidate into utility → single verification test
+  - **Benefit:** Reduces 30+ minutes of manual work to 2-3 minutes; prevents missing files
+
+- **Current:** Manually classify files as "client" or "server" when refactoring utilities
+  - **Proposed:** Create classification map in `.claude/config/boundaries.json` defining file patterns and their classification; reference during imports
+  - **Benefit:** Prevents developer error in classification; enables automation for boundary audits
+
+- **Current:** Update barrel exports (index.ts) manually when hiding server-only code
+  - **Proposed:** `/update-barrel-exports` command to automatically regenerate index.ts exports based on file classification
+  - **Complexity:** Medium
+  - **Benefit:** Prevents accidentally re-exporting server code through index
+
+### Agent Ideas
+
+- **Agent Name:** Security Boundary Enforcer
+  - **Specialization:** Detecting and preventing secrets/server-only code from leaking to client bundles
+  - **Tools Needed:** Grep, TypeScript compiler for module analysis, file I/O for refactoring
+  - **Key Responsibilities:**
+    1. Find all `server-only` directives; verify no client code imports them
+    2. Detect environment variable usage; flag `process.env.API_KEY` in bundled code
+    3. Classify files as client/server; suggest utility reorganization
+    4. Generate reports of exposure surface (where secrets are defined)
+  - **Trigger Scenarios:** On every PR to develop; scheduled pre-deployment audits
+
+---
+
+## Session Learnings - 2026-01-18 (Client/Server API Separation - Critical Security Fix)
+
+### Mistakes & Fixes
+
+- **Issue:** API_KEY exposed in client-side code (stores, components, route handlers) - major security vulnerability
+  - **Root Cause:** `fetchApi` utility with API_KEY was imported in client bundles; no separation between client and server utilities
+  - **Fix:** Created three-tier API structure:
+    1. `utils/apiTypes.ts` - Shared types and error classes (client-safe, no secrets)
+    2. `utils/clientApi.ts` - Client-side `clientFetch` without API_KEY (for client components/stores)
+    3. `utils/networkUtils.ts` - Server-only `fetchApi` with API_KEY (marked with `import 'server-only'`)
+    4. `utils/index.ts` - Exports only client-safe utilities
+  - **Prevention:** Never import server-side utilities in client code; use TypeScript `server-only` directive; separate concerns by file
+  - **Architecture Diagram:**
+    ```
+    Client (stores, components)
+      └── clientFetch() from @/utils (NO API_KEY)
+            │
+            ▼
+    Next.js API Routes (/api/*)
+      └── fetchApi() from @/utils/networkUtils (API_KEY injected here)
+            │
+            ▼
+    Backend API (FastAPI)
+    ```
+
+- **Issue:** Updated 4 stores to use `clientFetch` but missed 2 ServerStatus components
+  - **Root Cause:** Not all files importing fetchApi were identified during refactor
+  - **Fix:** Searched for all imports of fetchApi and updated remaining ServerStatus components to use clientFetch
+  - **Prevention:** Use grep to find all imports of changed utilities before considering refactor complete
+
+- **Issue:** 8 API route files still importing fetchApi from wrong location
+  - **Root Cause:** Routes should import from `@/utils/networkUtils` (server-only) not the index barrel export
+  - **Fix:** Updated all 8 routes to import from `@/utils/networkUtils` directly
+  - **Prevention:** Create distinct import paths for server vs. client utilities; avoid re-exporting server code through barrel exports
+
+### Patterns Discovered
+
+- **Pattern:** Three-Tier API Utility Structure for Security
+  - **Context:** Separating client-safe API utilities from server-only utilities in fullstack Next.js app
+  - **Implementation:**
+    ```typescript
+    // utils/apiTypes.ts - SAFE (no secrets)
+    export type ApiResponse<T> = {
+      ok: boolean;
+      data?: T;
+      error?: ApiError;
+    };
+    export class ApiError extends Error {
+      constructor(public status: number, public message: string) {
+        super(message);
+      }
+    }
+
+    // utils/clientApi.ts - CLIENT ONLY
+    export async function clientFetch<T>(
+      endpoint: string,
+      options?: RequestOptions
+    ): Promise<ApiResponse<T>> {
+      const response = await fetch(endpoint, options);
+      // NO API_KEY ADDED HERE
+      return response.json();
+    }
+
+    // utils/networkUtils.ts - SERVER ONLY
+    import 'server-only';  // Prevents accidental client import
+    export async function fetchApi<T>(
+      endpoint: string,
+      options?: RequestOptions
+    ): Promise<ApiResponse<T>> {
+      const headers = {
+        'X-API-Key': process.env.API_KEY || '',
+        ...options?.headers,
+      };
+      return fetch(endpoint, { ...options, headers });
+    }
+
+    // utils/index.ts - SAFE EXPORTS ONLY
+    export { clientFetch } from './clientApi';
+    export type { ApiResponse } from './apiTypes';
+    export { ApiError } from './apiTypes';
+    // NEVER export fetchApi from here
+    ```
+  - **Key Detail:** Use `server-only` directive to prevent accidental client-side bundling; separate by filename for clarity; never re-export server code through barrel exports
+
+- **Pattern:** Client/Server Boundary Enforcement with TypeScript
+  - **Context:** Preventing secrets from leaking to browser bundles in Next.js
+  - **Implementation:** Mark server-only modules with `import 'server-only'` at top; TypeScript build will fail if client imports them
+  - **Key Detail:** This is TypeScript compile-time protection; combined with barrel export discipline, prevents secrets in bundles
+
+- **Pattern:** API Route Import Pattern
+  - **Context:** Routes should always use server-only utilities for backend communication
+  - **Implementation:**
+    ```typescript
+    // app/api/mystery/route.ts
+    import { fetchApi } from '@/utils/networkUtils';  // DIRECT import, not from index
+
+    export async function GET(request: Request) {
+      const data = await fetchApi('/backend/mystery');
+      return Response.json(data);
+    }
+    ```
+  - **Key Detail:** API routes are server-side; always import from `networkUtils` not index barrel export
+
+### Debugging Wins
+
+- **Problem:** Identifying all locations where API_KEY was exposed
+  - **Approach:** Searched for all imports of `fetchApi` from index; identified which files should use client vs. server versions
+  - **Tool/Technique:** Used grep to find `from '@/utils'` and `from '@/utils/index'` patterns; verified each usage
+  - **Result:** Created comprehensive list of 12+ files to update; tracked progress systematically
+
+- **Problem:** Determining whether component is client or server
+  - **Approach:** Checked for use of browser APIs (hooks, useState, useEffect); server components don't use these
+  - **Tool/Technique:** Examined component structure; if uses hooks → client, if uses directly in SSR → server
+  - **Result:** Correctly classified stores (client) and API routes (server)
+
+- **Problem:** Understanding Next.js `server-only` directive
+  - **Approach:** Tested by trying to import `server-only` module in client and observing build error
+  - **Tool/Technique:** Reviewed Next.js documentation on server/client boundaries
+  - **Result:** Understood compile-time protection; confirmed safe to use
+
+### Performance Notes
+
+- Three-tier structure has zero performance impact; same fetch calls, just better organized
+- `server-only` directive is compile-time check; adds no runtime overhead
+- Client-side code is now cleaner (no API_KEY logic); slightly smaller bundle
+
+### Security Impact (Critical)
+
+- **Before:** API_KEY exposed in client bundle (every browser had access to backend auth)
+- **After:** API_KEY only exists on server; client code has no access to secrets
+- **Risk Eliminated:** XSS attack could no longer extract API_KEY from bundled code
 
 ---
 

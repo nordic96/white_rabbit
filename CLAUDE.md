@@ -459,6 +459,29 @@ If the index is not found, a `DatabaseIndexError` is raised with hint to run `ap
    - Production (Vercel): `API_KEY_REQUIRED=true` and set `API_KEY` environment variable
    - Never commit sensitive keys to version control; use platform-specific secret management
 
+### API Layer Security Summary
+
+The three-tier architecture provides defense-in-depth:
+
+1. **Client Layer (Browser):**
+   - Cannot access API_KEY (only available on server)
+   - clientFetch only calls Next.js routes via `/api/*`
+   - `server-only` import prevents build-time errors
+
+2. **Next.js API Route Layer:**
+   - Receives unauthenticated requests from browser via clientFetch
+   - Has access to API_KEY environment variable
+   - fetchApi automatically injects API_KEY in X-API-Key header
+   - Routes handle request validation and error formatting
+
+3. **FastAPI Backend Layer:**
+   - Validates X-API-Key header on every request
+   - Timing-safe comparison prevents timing attacks
+   - verify_api_key() middleware enforces authentication
+   - Neo4j parameterized queries prevent injection attacks
+
+**Result:** API key never leaves the server, clients cannot bypass authentication, all secrets are properly isolated.
+
 ### Input Validation
 
 All API inputs are validated at the Pydantic schema level:
@@ -579,6 +602,75 @@ vercel deploy
 ```
 
 ## Development Patterns
+
+### Client/Server API Separation
+
+The project uses a three-tier API utility structure to enforce secure separation between client-side and server-side code:
+
+**File Structure:**
+```
+web/utils/
+├── apiTypes.ts      # Shared types/error classes (client-safe)
+├── clientApi.ts     # clientFetch() for client code (NO API_KEY)
+├── networkUtils.ts  # fetchApi() for API routes (HAS API_KEY, server-only)
+└── index.ts         # Exports only client-safe utilities
+```
+
+**Usage Rules:**
+
+1. **Client Code (React components, Zustand stores):**
+   - Import from `@/utils` (index.ts exports)
+   - Use `clientFetch()` to call Next.js API routes
+   - Never make direct calls to FastAPI backend
+   - Never import from `@/utils/networkUtils.ts`
+
+   ```typescript
+   // Correct
+   import { clientFetch } from '@/utils';
+   const response = await clientFetch('/api/search', { query_params: { q: 'mystery' } });
+   ```
+
+2. **Server Code (Next.js API routes):**
+   - Import from `@/utils/networkUtils.ts` (server-only)
+   - Use `fetchApi()` to call FastAPI backend
+   - API key is injected automatically by fetchApi()
+   - Never call `clientFetch` in API routes
+
+   ```typescript
+   // app/api/search/route.ts - Correct
+   import { fetchApi } from '@/utils/networkUtils';
+   const response = await fetchApi(`/api/search?q=${query}`);
+   ```
+
+3. **Security Enforcement:**
+   - `networkUtils.ts` has `import 'server-only'` at top
+   - This prevents accidental client imports at build time
+   - API_KEY is defined inline in fetchApi(), never exported from config
+   - clientFetch makes requests to Next.js routes (no API key needed)
+
+**Request Flow:**
+```
+Browser Client
+  └── clientFetch('/api/mysteries')  [NO API_KEY, goes to Next.js]
+        │
+        ▼
+Next.js API Route (app/api/mysteries/route.ts)
+  └── fetchApi('/api/mysteries')  [API_KEY injected, calls FastAPI]
+        │
+        ▼
+FastAPI Backend (api/src/routers/)
+  └── verify_api_key() validates X-API-Key header
+        │
+        ▼
+Neo4J Database
+```
+
+**Why This Pattern:**
+- Protects API key from client-side exposure
+- Centralizes API authentication in server routes
+- Provides type-safe error handling across layers
+- Simplifies testing (can mock API routes independently)
+- Follows Next.js security best practices
 
 ### API Route Query Parameter Validation
 
