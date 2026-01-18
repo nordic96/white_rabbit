@@ -15,11 +15,11 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 
 from ..config import settings
-from ..exceptions import AudioNotFoundError
+from ..exceptions import AudioNotFoundError, TTSDependencyError
 from ..middleware import API_KEY_DEPENDENCIES
 from ..schemas.tts import TTSRequest, TTSResponse
-from ..services.tts_model import is_tts_model_ready, warmup_tts_model
-from ..services.tts_service import cleanup_old_cache_files, generate_tts_audio
+from ..services.tts_model import is_tts_model_ready, warmup_tts_model, KOKORO_AVAILABLE
+from ..services.tts_service import cleanup_old_cache_files, generate_tts_audio, TTS_DEPS_AVAILABLE
 from ..services.url_service import url_exists
 
 logger = logging.getLogger(__name__)
@@ -146,11 +146,21 @@ async def health_check() -> Dict[str, Any]:
             "message": "TTS disabled - using pre-generated audio files"
         }
 
+    # Check if TTS dependencies are installed
+    if not TTS_DEPS_AVAILABLE or not KOKORO_AVAILABLE:
+        return {
+            "status": "unavailable",
+            "tts_enabled": True,
+            "dependencies_installed": False,
+            "message": "TTS dependencies not installed. Install with: pip install -e '.[tts]'"
+        }
+
     model_loaded = is_tts_model_ready()
 
     return {
         "status": "ready" if model_loaded else "not_loaded",
         "tts_enabled": True,
+        "dependencies_installed": True,
         "model_loaded": model_loaded,
         "lazy_load": settings.tts_lazy_load,
         "default_voice": settings.tts_default_voice,
@@ -198,6 +208,11 @@ async def warmup() -> Dict[str, str]:
             "status": "disabled",
             "message": "TTS disabled - using pre-generated audio files"
         }
+
+    # Check if TTS dependencies are installed
+    if not TTS_DEPS_AVAILABLE or not KOKORO_AVAILABLE:
+        logger.warning("TTS warmup requested but dependencies not installed")
+        raise TTSDependencyError()
 
     await warmup_tts_model()
 

@@ -114,10 +114,13 @@ async def app_lifespan(app: FastAPI):
     # Startup
     logger.info("Starting up White Rabbit API...")
 
-    # Validate and create audio cache directory with security checks
-    audio_cache_path = Path(settings.tts_cache_dir)
-    validate_cache_directory(audio_cache_path)
-    logger.info(f"Audio cache directory: {audio_cache_path.absolute()}")
+    # Only validate cache directory if TTS is enabled
+    if settings.tts_enabled:
+        audio_cache_path = Path(settings.tts_cache_dir)
+        validate_cache_directory(audio_cache_path)
+        logger.info(f"Audio cache directory: {audio_cache_path.absolute()}")
+    else:
+        logger.info("TTS disabled - skipping cache directory validation")
 
     # Initialize database (using original db_lifespan)
     async with db_lifespan(app):
@@ -127,8 +130,9 @@ async def app_lifespan(app: FastAPI):
 
     # Shutdown
     logger.info("Shutting down White Rabbit API...")
-    await cleanup_tts_model()
-    logger.info("TTS model cleanup complete")
+    if settings.tts_enabled:
+        await cleanup_tts_model()
+        logger.info("TTS model cleanup complete")
 
 
 app = FastAPI(
@@ -167,14 +171,19 @@ app.add_middleware(
 app.add_middleware(ErrorLoggingMiddleware)
 app.add_middleware(RequestLoggingMiddleware)
 
-# Mount static files for audio cache
-audio_cache_path = Path(settings.tts_cache_dir)
-app.mount(
-    settings.static_audio_url_prefix,
-    StaticFiles(directory=str(audio_cache_path)),
-    name="audio"
-)
-logger.info(f"Mounted static audio files at {settings.static_audio_url_prefix}")
+# Mount static files for audio cache (only when TTS is enabled)
+if settings.tts_enabled:
+    audio_cache_path = Path(settings.tts_cache_dir)
+    # Ensure directory exists for static file mounting
+    audio_cache_path.mkdir(parents=True, exist_ok=True)
+    app.mount(
+        settings.static_audio_url_prefix,
+        StaticFiles(directory=str(audio_cache_path)),
+        name="audio"
+    )
+    logger.info(f"Mounted static audio files at {settings.static_audio_url_prefix}")
+else:
+    logger.info("TTS disabled - static audio file serving not mounted")
 
 # Include routers
 app.include_router(mysteries.router)

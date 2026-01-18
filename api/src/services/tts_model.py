@@ -3,6 +3,8 @@ TTS Model Manager for Kokoro-82M pipeline.
 
 This module provides a singleton manager for the Kokoro TTS pipeline
 with lazy loading and thread-safe initialization.
+
+Note: kokoro is an optional dependency. If not installed, TTS features will be unavailable.
 """
 import asyncio
 import logging
@@ -10,9 +12,17 @@ from typing import Optional
 from concurrent.futures import ThreadPoolExecutor
 
 from ..config import settings
-from ..exceptions import TTSModelNotReadyError, TTSGenerationError
+from ..exceptions import TTSModelNotReadyError, TTSGenerationError, TTSDependencyError
 
 logger = logging.getLogger(__name__)
+
+# Check if kokoro is available
+KOKORO_AVAILABLE = False
+try:
+    from kokoro import KPipeline
+    KOKORO_AVAILABLE = True
+except ImportError:
+    KPipeline = None  # type: ignore
 
 # Thread pool for CPU-bound TTS operations
 _executor = ThreadPoolExecutor(max_workers=2)
@@ -57,8 +67,10 @@ class TTSModelManager:
         This method is executed in a thread pool to avoid blocking
         the async event loop during model loading.
         """
+        if not KOKORO_AVAILABLE:
+            raise TTSDependencyError()
+
         try:
-            from kokoro import KPipeline
             logger.info(f"Loading Kokoro TTS pipeline with lang_code='{settings.tts_lang_code}'")
             pipeline = KPipeline(lang_code=settings.tts_lang_code)
             logger.info("Kokoro TTS pipeline loaded successfully")

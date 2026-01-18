@@ -105,3 +105,10 @@ class AudioNotFoundError(WhiteRabbitException):
         message = f"Pre-generated audio not found for mystery '{mystery_id}'"
         combined_details = {"audio_url": audio_url, **(details or {})}
         super().__init__(message=message, status_code=404, details=combined_details)
+
+
+class TTSDependencyError(WhiteRabbitException):
+    """Raised when TTS dependencies are not installed."""
+    def __init__(self, details: Optional[Dict[str, Any]] = None):
+        message = "TTS dependencies not installed. Install with: pip install -e '.[tts]'"
+        super().__init__(message=message, status_code=503, details=details)

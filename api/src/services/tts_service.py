@@ -2,6 +2,7 @@
 TTS service layer for audio generation using Kokoro-82M model.
 
 This service handles text-to-speech audio generation with caching support.
+TTS dependencies (numpy, soundfile, kokoro) are optional and loaded only when TTS is enabled.
 """
 import asyncio
 import hashlib
@@ -10,15 +11,21 @@ import os
 import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import Optional, List
-
-import numpy as np
-import soundfile as sf
+from typing import Optional, List, TYPE_CHECKING
 
 from ..config import settings
 from ..schemas.tts import TTSResponse
-from ..exceptions import TTSGenerationError, TextTooLongError
-from .tts_model import get_tts_pipeline
+from ..exceptions import TTSGenerationError, TextTooLongError, TTSDependencyError
+
+# Check if TTS dependencies are available
+TTS_DEPS_AVAILABLE = False
+try:
+    import numpy as np
+    import soundfile as sf
+    TTS_DEPS_AVAILABLE = True
+except ImportError:
+    np = None  # type: ignore
+    sf = None  # type: ignore
 
 logger = logging.getLogger(__name__)
 
@@ -167,9 +174,15 @@ async def _generate_audio_sync(text: str, voice_id: str, cache_path: Path):
         cache_path: Path where to save the generated audio
 
     Raises:
+        TTSDependencyError: If TTS dependencies are not installed
         TTSGenerationError: If audio generation fails
     """
+    if not TTS_DEPS_AVAILABLE:
+        raise TTSDependencyError()
+
     try:
+        # Lazy import to avoid loading when TTS is disabled
+        from .tts_model import get_tts_pipeline
         pipeline = await get_tts_pipeline()
 
         logger.info(f"Generating audio for text (length: {len(text)}) with voice: {voice_id}")
