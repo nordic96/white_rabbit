@@ -1,5 +1,9 @@
 # SKILL.md - Frontend Development Learnings
 
+> **Document Version:** 2.6
+> **Last Updated:** 2026-01-18
+> **Parent Reference:** See [`/CLAUDE.md`](/CLAUDE.md) for project-wide patterns and quick reference.
+
 This document captures best practices, common mistakes, and guidelines learned from frontend development sessions.
 
 ---
@@ -469,10 +473,132 @@ Components modified in this session:
 
 ---
 
-**Document Version:** 2.4
+## Session Learnings - 2026-01-18 (Footer Component & i18n Integration)
+
+### Mistakes & Fixes
+
+- **Issue:** Attempting to use useTranslations hook in component without 'use client' directive
+  - **Root Cause:** `useTranslations` is a client-side hook from next-intl; components must be Client Components to use React hooks
+  - **Fix:** Added `'use client'` directive at top of Footer component (before imports)
+  - **Prevention:** When using React hooks or browser APIs in Next.js App Router, always add `'use client'` directive to make component a Client Component
+
+### Patterns Discovered
+
+- **Pattern:** Footer Component with Responsive Layout
+  - **Context:** Creating a standard footer with sections for company info, social links, and legal links
+  - **Implementation:**
+    ```typescript
+    // components/Footer.tsx
+    'use client';
+
+    import { useTranslations } from 'next-intl';
+    import Link from 'next/link';
+
+    export function Footer() {
+      const t = useTranslations('footer');
+
+      return (
+        <footer className="bg-slate-950 text-slate-200 py-8">
+          <div className="container mx-auto px-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {/* Company Info */}
+              <div>
+                <h3 className="font-bold text-white mb-4">{t('about.title')}</h3>
+                <p className="text-sm">{t('about.description')}</p>
+              </div>
+
+              {/* Social Links */}
+              <div>
+                <h3 className="font-bold text-white mb-4">{t('social.title')}</h3>
+                <div className="flex gap-4">
+                  <a href={t('social.twitter')} target="_blank" rel="noopener noreferrer">
+                    {t('social.twitterLabel')}
+                  </a>
+                  <a href={t('social.github')} target="_blank" rel="noopener noreferrer">
+                    {t('social.githubLabel')}
+                  </a>
+                </div>
+              </div>
+
+              {/* Legal Links */}
+              <div>
+                <h3 className="font-bold text-white mb-4">{t('legal.title')}</h3>
+                <div className="space-y-2">
+                  <Link href="/privacy" className="text-sm hover:text-white transition">
+                    {t('legal.privacy')}
+                  </Link>
+                  <Link href="/terms" className="text-sm hover:text-white transition">
+                    {t('legal.terms')}
+                  </Link>
+                </div>
+              </div>
+            </div>
+
+            {/* Disclaimer */}
+            <div className="border-t border-slate-700 mt-8 pt-4">
+              <p className="text-xs text-slate-400">{t('disclaimer')}</p>
+            </div>
+
+            {/* Copyright */}
+            <div className="text-center mt-4 text-xs text-slate-400">
+              <p>© 2026 White Rabbit. {t('copyright')}</p>
+            </div>
+          </div>
+        </footer>
+      );
+    }
+    ```
+  - **Key Detail:** Use semantic `<footer>` element; leverage Tailwind's responsive grid (`grid-cols-1 md:grid-cols-3`) for mobile-to-desktop layout; use next-intl for all user-facing strings
+
+- **Pattern:** Using next-intl useTranslations Hook
+  - **Context:** Adding internationalization to React components
+  - **Implementation:**
+    ```typescript
+    'use client';
+    import { useTranslations } from 'next-intl';
+
+    export function MyComponent() {
+      const t = useTranslations('namespace');
+      return <h1>{t('key')}</h1>;  // Gets translation from namespace.key
+    }
+    ```
+  - **Key Detail:** The `useTranslations('namespace')` function accepts a namespace; all subsequent `t('key')` calls look up `namespace.key` in translation files. This organizes translations by feature/component.
+
+- **Pattern:** Responsive Grid Layout for Footer Sections
+  - **Context:** Organizing footer content across multiple columns that stack on mobile
+  - **Implementation:** Use `grid grid-cols-1 md:grid-cols-3` to create single-column layout on mobile (sm), three-column on medium+ screens
+  - **Key Detail:** Mobile-first approach; base `grid-cols-1` applies to all screens, `md:` prefix overrides for medium and larger breakpoints
+
+- **Pattern:** External Links with Security Attributes
+  - **Context:** Linking to social media or external sites from footer
+  - **Implementation:**
+    ```typescript
+    <a href={t('social.twitter')} target="_blank" rel="noopener noreferrer">
+      Twitter
+    </a>
+    ```
+  - **Key Detail:** Always use `target="_blank"` to open in new tab, and `rel="noopener noreferrer"` for security (prevents window.opener attacks); the URL should be translated if locale-specific
+
+### Debugging Wins
+
+- **Problem:** Component failing with error about useTranslations in Server Component
+  - **Approach:** Read error message indicating hooks can't be used in Server Components; checked component for missing `'use client'` directive
+  - **Tool/Technique:** Next.js error message clearly indicated the issue; added directive to fix
+  - **Result:** Component now renders correctly with translations
+
+### Performance Notes
+
+- Footer is a Client Component but doesn't require expensive operations; lightweight re-render on locale changes
+- Responsive grid layout requires no JavaScript; pure CSS via Tailwind classes
+- Translation strings are loaded from i18n infrastructure; footer rendering is fast after translations cached
+
+---
+
+**Document Version:** 2.6
 **Last Updated:** 2026-01-18
-**Source:** Health Check Implementation + Global Search Session + SearchBar Refactoring (Issue #27) + PR #44 Theme Changes & UI Fixes + PR #54 Header Consolidation + Client/Server API Separation Session
+**Source:** Health Check Implementation + Global Search Session + SearchBar Refactoring (Issue #27) + PR #44 Theme Changes & UI Fixes + PR #54 Header Consolidation + Client/Server API Separation Session + Footer Component & i18n Integration Session
 **Maintainer:** Claude Code Frontend Agent
+**Cross-References:** See [`/CLAUDE.md`](/CLAUDE.md) for quick reference patterns; see [`backend-dev/SKILL.md`](../backend-dev/SKILL.md) for API security implementation details.
 
 ---
 
@@ -498,6 +624,18 @@ Components modified in this session:
   - **Complexity:** Medium
   - **Implementation Notes:** Use TypeScript's module resolution to detect `server-only` imports in client code; flag violations with file locations
 
+- **`/add-translation-keys`**
+  - **Purpose:** Automatically add new translation keys to messages/en.json with useTranslations hook setup in component
+  - **Trigger:** When creating new i18n-enabled components or pages
+  - **Complexity:** Low
+  - **Implementation Notes:** Accept component file path and feature namespace; add 'use client' directive if missing; generate useTranslations hook; add to messages/en.json with scaffolding values
+
+- **`/scaffold-component-from-pattern`**
+  - **Purpose:** Generate new responsive components from existing patterns (Footer, Header, etc.) with proper styling and i18n
+  - **Trigger:** When building similar layout components; creating standard page sections
+  - **Complexity:** Medium
+  - **Implementation Notes:** Accept component type (footer, header, sidebar); generate Tailwind responsive layout, 'use client' directive, useTranslations hook, and translation keys scaffolding
+
 ### Workflow Improvements
 
 - **Current:** Manual grep to find all X-API-Key headers → manually update 9 files → test each
@@ -513,6 +651,14 @@ Components modified in this session:
   - **Complexity:** Medium
   - **Benefit:** Prevents accidentally re-exporting server code through index
 
+- **Current:** Create new component → add 'use client' → add useTranslations hook → manually create translation keys in messages/en.json → verify structure
+  - **Proposed:** `/add-translation-keys` command that automates steps 2-4; generates complete i18n setup in one operation
+  - **Benefit:** Reduces 5-10 minutes of boilerplate work to 30 seconds; ensures consistent i18n structure
+
+- **Current:** Build responsive footer/header manually, repeat Tailwind classes, manually structure for mobile-first → verify on multiple screens
+  - **Proposed:** `/scaffold-component-from-pattern` generates pre-styled component with tested Tailwind classes, grid layouts, semantic HTML
+  - **Benefit:** Reduces component creation from 20 minutes to 2 minutes; ensures accessibility and mobile-first approach
+
 ### Agent Ideas
 
 - **Agent Name:** Security Boundary Enforcer
@@ -524,6 +670,62 @@ Components modified in this session:
     3. Classify files as client/server; suggest utility reorganization
     4. Generate reports of exposure surface (where secrets are defined)
   - **Trigger Scenarios:** On every PR to develop; scheduled pre-deployment audits
+
+- **Agent Name:** i18n Component Generator
+  - **Specialization:** Creating translation-ready React components with proper i18n setup
+  - **Tools Needed:** File I/O for component and translation generation, TypeScript template generation
+  - **Key Responsibilities:**
+    1. Generate component with 'use client' directive if needed
+    2. Set up useTranslations hook with namespace
+    3. Create translation key scaffolding in messages/en.json
+    4. Add semantic HTML and accessibility attributes
+    5. Generate responsive Tailwind classes
+  - **Trigger Scenarios:**
+    - When creating new layout components
+    - When converting existing components to i18n
+    - When adding new features that need multi-language support
+    - During localization efforts (adding new locales)
+
+### Pattern: Responsive Component Pattern Library
+
+Development session revealed reusable patterns for layout components:
+
+**Footer Component Pattern:**
+```
+- 'use client' directive (Client Component)
+- useTranslations hook with 'footer' namespace
+- Responsive grid: grid-cols-1 md:grid-cols-3 (mobile: 1 col, desktop: 3 cols)
+- Semantic sections: <footer>, <div> with role=region
+- Social links with target="_blank" rel="noopener noreferrer"
+- Disclaimer section in <div> with border-top and smaller text
+- Copyright notice at bottom with centered text
+- Tailwind classes: bg-slate-950 text-slate-200 for dark theme
+```
+
+**Translation Key Structure:**
+```json
+{
+  "footer": {
+    "about": { "title": "About", "description": "..." },
+    "social": { "title": "Follow Us", "twitter": "url", "twitterLabel": "Twitter", ... },
+    "legal": { "title": "Legal", "privacy": "Privacy Policy", "terms": "Terms of Service" },
+    "disclaimer": "Educational purposes only...",
+    "copyright": "All rights reserved."
+  }
+}
+```
+
+This pattern applicable to:
+- Header components (logo, nav, social links)
+- Sidebar navigation sections
+- Card/grid layouts with responsive breakpoints
+- Dialog/modal wrappers with semantic HTML
+
+**Recommended Implementation:**
+- Create `.claude/templates/components/` directory with scaffolds
+- Build CLI tool to generate from templates with i18n integration
+- Add validation for Tailwind responsive prefixes usage
+- Generate TypeScript types for translation keys
 
 ---
 

@@ -1,5 +1,9 @@
 # SKILL.md - Learnings from Code Reviews
 
+> **Document Version:** 2.7
+> **Last Updated:** 2026-01-18
+> **Parent Reference:** See [`/CLAUDE.md`](/CLAUDE.md) for project-wide patterns and quick reference.
+
 This document captures best practices, common mistakes, and guidelines learned from PR feedback. Reference this before starting new work to maintain code quality and avoid repeating mistakes.
 
 ---
@@ -778,10 +782,11 @@ git checkout -b dev_search_optimization
 
 ---
 
-**Document Version:** 2.2
-**Last Updated:** 2026-01-16
+**Document Version:** 2.7
+**Last Updated:** 2026-01-18
 **Source:** PR #44 (UI Theme Fixes) + PR #46 (TTS Cache/Security/Rate Limiting) + PR Review False Positive Investigation
 **Maintainer:** Claude Code Backend Agent
+**Cross-References:** See [`/CLAUDE.md`](/CLAUDE.md) for quick reference patterns; see [`frontend-dev/SKILL.md`](../frontend-dev/SKILL.md) for client-side API separation details.
 
 ---
 
@@ -1091,10 +1096,179 @@ git checkout -b dev_search_optimization
 
 ---
 
-**Document Version:** 2.5
+## Session Learnings - 2026-01-18 (Vercel Deployment Optimization & Optional Dependencies)
+
+### Mistakes & Fixes
+
+- **Issue:** Attempting to deploy entire TTS stack (Kokoro + PyTorch + CUDA) to Vercel, resulting in ~2GB package size exceeding limits
+  - **Root Cause:** Including large ML model dependencies (kokoro, numpy, soundfile with PyTorch) in production deployment without evaluating platform constraints
+  - **Fix:** Moved TTS dependencies to `pyproject.toml` `[project.optional-dependencies]` section; made imports conditional with availability flags; disabled TTS in production with `TTS_ENABLED=false`
+  - **Prevention:** Before deploying to serverless platforms, research package size limits (Vercel: ~250MB function limit); move heavy dependencies to optional; pre-compute expensive operations offline
+
+- **Issue:** TTS model loading at startup blocked application initialization
+  - **Root Cause:** Model loading happened synchronously in main.py on every startup, adding 10-30s delay in development
+  - **Fix:** Implemented lazy imports in functions; only initialize cache/static files when `settings.tts_enabled=True`
+  - **Prevention:** For expensive initialization (ML models, large data loads), use lazy loading behind conditional flags; let settings control what gets initialized
+
+- **Issue:** Application crashed when TTS dependencies missing but code tried to use them
+  - **Root Cause:** No graceful fallback when optional dependencies unavailable
+  - **Fix:** Added availability flags (`KOKORO_AVAILABLE`, `TTS_DEPS_AVAILABLE`) checked before using TTS functionality; try/except imports at top of modules
+  - **Prevention:** For optional features, check availability flag before using; provide meaningful error messages instead of ImportError crashes
+
+### Patterns Discovered
+
+- **Pattern:** Optional Dependencies with Availability Flags
+  - **Context:** Supporting optional features (TTS synthesis) without breaking the app when dependencies are missing
+  - **Implementation:**
+    ```python
+    # config.py
+    tts_enabled: bool = Field(default=True, description="Enable TTS (disable for serverless)")
+
+    # main.py - Conditional initialization
+    from contextlib import asynccontextmanager
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        if settings.tts_enabled:
+            # Only initialize expensive resources when enabled
+            cache_dir.mkdir(parents=True, exist_ok=True)
+            app.mount("/audio", StaticFiles(directory=str(cache_dir)), name="audio")
+        yield
+
+    app = FastAPI(lifespan=lifespan)
+    ```
+  - **Key Detail:** Use settings flag at app initialization time to conditionally load expensive resources; avoids ImportError crashes
+
+- **Pattern:** Graceful Imports with Availability Checks
+  - **Context:** Handling optional ML dependencies that may not be installed in all environments
+  - **Implementation:**
+    ```python
+    # At module top level, use try/except with availability flag
+    try:
+        from kokoro import KokoroTTS
+        KOKORO_AVAILABLE = True
+    except ImportError:
+        KOKORO_AVAILABLE = False
+        KokoroTTS = None
+
+    try:
+        import numpy
+        import soundfile
+        TTS_DEPS_AVAILABLE = True
+    except ImportError:
+        TTS_DEPS_AVAILABLE = False
+
+    # In function/endpoint
+    async def synthesize_speech(text: str):
+        if not TTS_DEPS_AVAILABLE:
+            raise HTTPException(status_code=503, detail="TTS not available in this deployment")
+        # ... rest of implementation
+    ```
+  - **Key Detail:** Check availability flag at runtime before using optional features; enables graceful degradation
+
+- **Pattern:** Lazy Imports in Function Scope for Expensive Modules
+  - **Context:** Deferring expensive module loading until actually needed
+  - **Implementation:**
+    ```python
+    # Bad - Loads at module import time
+    import kokoro
+    import numpy
+
+    # Good - Loads only when function called
+    async def text_to_speech(request: TTSRequest):
+        from kokoro import KokoroTTS  # Import happens here, not at module load
+        model = KokoroTTS()
+        # ... synthesis logic
+    ```
+  - **Key Detail:** For large models (PyTorch, TensorFlow), lazy imports in functions avoid loading at module level; reduces startup time significantly
+
+- **Pattern:** Pre-Generated Content Strategy for Serverless
+  - **Context:** Avoiding expensive computation in serverless functions that have timeouts and size limits
+  - **Implementation:**
+    ```python
+    # settings.py
+    tts_enabled: bool = Field(default=False)  # Disabled in production
+    audio_base_url: str = Field(default="https://cdn.example.com/audio")  # Pre-generated files
+
+    # In endpoint
+    @app.get("/mystery/{id}/audio")
+    async def get_mystery_audio(id: str):
+        if settings.tts_enabled:
+            # Local development: synthesize on-demand
+            audio_data = await synthesize_speech(mystery.title)
+            return audio_data
+        else:
+            # Production: return pre-generated file URL
+            return {"audio_url": f"{settings.audio_base_url}/mystery-{id}.wav"}
+    ```
+  - **Key Detail:** In production, return URLs to pre-generated audio stored in CDN; in development, synthesize on-demand; same code path handles both
+
+- **Pattern:** Conditional Static File Mounting Based on Feature Flags
+  - **Context:** Only serving static audio files when TTS is enabled (dev); avoiding unnecessary mount overhead in production
+  - **Implementation:**
+    ```python
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        if settings.tts_enabled:
+            cache_dir = Path(settings.tts_cache_dir)
+            cache_dir.mkdir(parents=True, exist_ok=True)
+            app.mount("/audio", StaticFiles(directory=str(cache_dir)), name="audio")
+            logger.info(f"TTS audio cache mounted at /audio")
+        yield
+        if settings.tts_enabled:
+            # Cleanup if needed
+            pass
+
+    app = FastAPI(lifespan=lifespan)
+    ```
+  - **Key Detail:** Mount static files only when feature is enabled; reduces memory usage and complexity in production deployments
+
+### Debugging Wins
+
+- **Problem:** Understanding why Vercel was rejecting deployment with "function too large" error
+  - **Approach:** Examined dependencies in poetry.lock and identified Kokoro pulling in PyTorch (500MB+) and CUDA dependencies
+  - **Tool/Technique:** Checked package tree with `pip list | grep torch` and reviewed pyproject.toml dependency tree; realized ML packages were overkill
+  - **Result:** Moved to optional dependencies; confirmed size reduction from 2GB to ~100MB
+
+- **Problem:** Determining which dependencies could be made optional vs. required
+  - **Approach:** Analyzed which features actually depend on each package (numpy/soundfile only for TTS synthesis, not for basic queries)
+  - **Tool/Technique:** Traced imports through codebase; identified modules only used in TTS-specific functions
+  - **Result:** Created `[project.optional-dependencies]` section with `tts = ["kokoro", "numpy", "soundfile"]`
+
+- **Problem:** Ensuring app starts without errors when optional deps are missing
+  - **Approach:** Created test environment without TTS packages installed; verified graceful error handling
+  - **Tool/Technique:** Ran app with `pip uninstall kokoro numpy soundfile` and confirmed HTTPException returned instead of ImportError
+  - **Result:** Confirmed availability flags and try/except pattern prevents crashes
+
+### Performance Notes
+
+- Conditional TTS initialization reduces startup time by 15-25s in production (avoids model loading)
+- Lazy imports in function scope defer expensive module loads from startup to request time
+- Optional dependencies reduce deployment size by 95% (2GB → ~100MB) enabling serverless deployment
+- Pre-generated audio strategy eliminates 30-60s synthesis latency from request path in production
+- Static file mounting only when needed (TTS enabled) saves memory and complexity
+
+### Deployment Guidelines
+
+1. **For Serverless (Vercel, Lambda):**
+   - Set `TTS_ENABLED=false` in environment
+   - Dependencies move to optional in pyproject.toml
+   - Pre-generate audio files; serve from static CDN
+   - Deployment size must stay under 250MB limit
+
+2. **For Persistent Backend (Heroku, Railway):**
+   - Set `TTS_ENABLED=true` in environment
+   - Full TTS dependencies installed
+   - Synthesize on-demand; cache results locally
+   - Allows dynamic synthesis without size constraints
+
+---
+
+**Document Version:** 2.7
 **Last Updated:** 2026-01-18
-**Source:** PR #54 (API Key Security Refactoring) + PR Review Response + Bulk Router Updates Session + Client/Server API Separation Session
+**Source:** PR #54 (API Key Security Refactoring) + PR Review Response + Bulk Router Updates Session + Client/Server API Separation Session + Vercel Deployment Optimization Session
 **Maintainer:** Claude Code Backend Agent
+**Cross-References:** See [`/CLAUDE.md`](/CLAUDE.md) for quick reference; see [`frontend-dev/SKILL.md`](../frontend-dev/SKILL.md) for client-side implementation.
 
 ---
 
@@ -1181,6 +1355,129 @@ This pattern could be automated for:
 - Build CLI tool to run audits and report violations
 - Generate suggested fixes with impact analysis
 - Allow dry-run mode before applying changes
+
+---
+
+## Automation Opportunities - 2026-01-18 (Part 2 - Deployment & Dependencies)
+
+### Potential Commands
+
+- **`/optimize-serverless-deps`**
+  - **Purpose:** Automatically analyze dependencies and move large packages (ML models, PyTorch, CUDA) to optional groups
+  - **Trigger:** When preparing deployment to serverless platforms (Vercel, Lambda); before merging large dependency PRs
+  - **Complexity:** Medium
+  - **Implementation Notes:** Parse pyproject.toml, identify packages over 50MB, suggest moving to `[project.optional-dependencies]`; generate availability flags; create conditional imports
+
+- **`/add-optional-dep-flags`**
+  - **Purpose:** Generate availability flag constants and try/except import wrappers for optional dependencies
+  - **Trigger:** After moving dependencies to optional groups; when adding new optional features
+  - **Complexity:** Low
+  - **Implementation Notes:** For each package in optional-dependencies, create flag like `KOKORO_AVAILABLE = True/False` with try/except import wrapper; add to specified module
+
+- **`/generate-vercel-config`**
+  - **Purpose:** Create or update vercel.json with appropriate function settings (timeouts, memory, maxDuration)
+  - **Trigger:** When optimizing backend for Vercel deployment
+  - **Complexity:** Low
+  - **Implementation Notes:** Generate index.py wrapper for App Router auto-detection, set maxDuration for expensive endpoints, configure environment variable handling
+
+- **`/audit-hardcoded-secrets`**
+  - **Purpose:** Search for hardcoded credentials, API keys, database passwords that should be environment variables
+  - **Trigger:** Before every PR to main; scheduled security audits; post-deployment reviews
+  - **Complexity:** Low
+  - **Implementation Notes:** Regex patterns for common secret formats (api_key=, password=, token=); filter out comments/docs; compare against .env.example
+
+- **`/verify-dependency-injection-coverage`**
+  - **Purpose:** Audit all FastAPI route endpoints to ensure security decorators are applied consistently
+  - **Trigger:** When updating authentication requirements; new endpoint security policy; pre-merge security checks
+  - **Complexity:** Medium
+  - **Implementation Notes:** Scan routers for endpoints without `@limiter.limit()` or missing `Depends(verify_api_key)` dependencies; report coverage statistics
+
+### Workflow Improvements
+
+- **Current:** Manually identify large dependencies → manually move to pyproject.toml optional section → manually add try/except imports → manually test without deps
+  - **Proposed:** `/optimize-serverless-deps` to identify and move automatically → `/add-optional-dep-flags` to generate wrappers → single test run
+  - **Benefit:** Reduces 30-45 minutes of manual work to 5 minutes; ensures consistency; prevents missed dependencies
+
+- **Current:** Update vercel.json manually, test on Vercel, discover size issues, revert config, repeat
+  - **Proposed:** `/generate-vercel-config` command that analyzes package tree, suggests appropriate function settings, auto-generates index.py
+  - **Benefit:** Catches size/timeout issues before deployment; prevents deployment failures; reduces iteration time
+
+- **Current:** Manual grep search for potential hardcoded secrets in PR reviews
+  - **Proposed:** `/audit-hardcoded-secrets` command with regex patterns for common credential formats; run automatically on PRs
+  - **Benefit:** Catches secrets before merge; faster than manual review; prevents accidental exposure
+
+- **Current:** Check each endpoint individually for rate limiting and API key decorators
+  - **Proposed:** `/verify-dependency-injection-coverage` to audit all routers and report gaps
+  - **Benefit:** Prevents accidentally exposing unprotected endpoints; provides audit trail for compliance
+
+### Agent Ideas
+
+- **Agent Name:** Deployment Configuration Optimizer
+  - **Specialization:** Optimizing backend configuration for different deployment targets (serverless vs. persistent)
+  - **Tools Needed:** Grep, Python dependency parser, configuration file generators, JSON/YAML editors
+  - **Key Responsibilities:**
+    1. Analyze pyproject.toml and identify large dependencies unsuitable for serverless
+    2. Generate optional dependency groups with availability flags
+    3. Create environment-specific configuration (TTS_ENABLED, AUDIO_BASE_URL toggles)
+    4. Generate deployment-specific files (vercel.json, index.py wrapper)
+    5. Verify conditional imports are in place and working
+  - **Trigger Scenarios:**
+    - Before Vercel/Lambda deployment attempts
+    - When package size grows beyond limits
+    - When adding new feature with heavy dependencies
+    - Pre-release optimization pass
+
+- **Agent Name:** Security & Compliance Auditor
+  - **Specialization:** Finding and preventing security vulnerabilities before deployment
+  - **Tools Needed:** Grep, Python AST parser, security pattern database
+  - **Key Responsibilities:**
+    1. Search for hardcoded secrets (API keys, passwords, database URIs)
+    2. Verify dependency injection coverage on all endpoints
+    3. Check for timing-safe string comparisons on security-sensitive operations
+    4. Audit for parameterized queries (no f-string interpolation)
+    5. Generate security compliance report
+  - **Trigger Scenarios:**
+    - Before every PR to main
+    - Scheduled security audits (weekly/monthly)
+    - Post-incident security reviews
+    - Onboarding new developers
+
+### Pattern: Deployment Target Analysis
+
+Development session revealed a scalable pattern for deployment optimization:
+
+1. **Analyze Target Constraints:**
+   - Function size limit (Vercel: 250MB)
+   - Execution timeout (Lambda: 900s, Vercel: 60s typical, 900s with pro)
+   - Memory availability (serverless: 512MB-3GB)
+   - Persistent connection support (ephemeral vs. long-lived)
+
+2. **Classify Dependencies:**
+   - Required (always needed): FastAPI, pydantic, httpx
+   - Optional (feature-gated): kokoro, numpy, soundfile (TTS only)
+   - Deployment-specific: Use different configs for dev/prod
+
+3. **Implement Feature Toggles:**
+   - `TTS_ENABLED` flag controls model loading
+   - `AUDIO_BASE_URL` points to pre-generated content
+   - Same code path works for dev (compute) and prod (pre-generated)
+
+4. **Verify Deployment:**
+   - Test without optional dependencies installed
+   - Verify graceful error handling with missing deps
+   - Measure startup time; confirm acceptable for target platform
+
+This pattern applicable to any expensive feature with deployment constraints:
+- Image generation with Pillow/OpenCV
+- Complex analytics with numpy/scipy
+- Video processing with ffmpeg-python
+- Large language models or ML inference
+
+**Recommended Implementation:**
+- Create deployment target checklist template
+- Build dependency analyzer to identify problem packages
+- Generate platform-specific configuration files
+- Add pre-deployment validation checks
 
 ---
 

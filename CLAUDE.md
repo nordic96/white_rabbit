@@ -1,5 +1,8 @@
 # CLAUDE.md
 
+> **Document Version:** v3.0
+> **Last Updated:** 2026-01-18
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
@@ -14,6 +17,23 @@ npm run build    # Production build
 npm run start    # Start production server
 npm run lint     # Run ESLint
 ```
+
+### Backend Setup
+
+For local backend development with TTS support, install optional dependencies:
+
+```bash
+# Install with TTS support (includes Kokoro model, soundfile, numpy)
+pip install -e ".[tts]"
+
+# Or install without TTS for production-like environment (uses pre-generated audio)
+pip install -e "."
+```
+
+TTS dependencies are optional because:
+- Production (Vercel) uses pre-generated audio files (no real-time TTS needed)
+- Development can work with TTS disabled when `TTS_ENABLED=false`
+- Reduces build size for serverless deployments
 
 ### Deployment Commands
 
@@ -125,6 +145,43 @@ Playwright MCP is configured project-wide in `.mcp.json` for browser automation 
 - Accessibility testing
 
 ## UI Components & Styling
+
+### Internationalization with next-intl
+
+> **See Also:** For detailed i18n patterns, component examples (Footer, Header), and debugging tips, see [`.claude/agents/frontend-dev/SKILL.md`](.claude/agents/frontend-dev/SKILL.md) - "Footer Component & i18n Integration" section.
+
+The application supports multiple languages using the `next-intl` library. Components that need translated content use the `useTranslations` hook:
+
+```typescript
+'use client';
+
+import { useTranslations } from 'next-intl';
+
+export function MyComponent() {
+  const t = useTranslations('ComponentName');
+
+  return (
+    <div>
+      <h1>{t('title')}</h1>
+      <p>{t('description')}</p>
+    </div>
+  );
+}
+```
+
+**Pattern Notes:**
+- Components must use `'use client'` directive to access hooks
+- Translation keys are namespaced by component (e.g., `'Footer'`, `'Navigation'`)
+- Namespace parameter in `useTranslations()` matches the message file structure
+- All user-facing strings should be translated, not hardcoded
+
+**Example from Footer component (`components/Footer.tsx`):**
+```typescript
+const t = useTranslations('Footer');
+// Accesses keys like t('links.home'), t('createdBy'), t('disclaimer')
+```
+
+Translation files are stored in locale directories with corresponding message namespaces.
 
 ### Theme & Color Palette
 
@@ -536,6 +593,8 @@ Cleanup is non-blocking and runs asynchronously. Returns count of removed files.
 
 ## Deployment Architecture
 
+> **See Also:** For detailed rationale on serverless limitations, optional dependency patterns, and deployment debugging tips, see [`.claude/agents/backend-dev/SKILL.md`](.claude/agents/backend-dev/SKILL.md) - "Deployment Strategy & Configuration" and "Vercel Deployment Optimization" sections.
+
 ### Vercel Deployment Strategy
 
 White Rabbit uses a hybrid deployment approach combining Vercel's serverless platform with pre-generated audio:
@@ -549,6 +608,8 @@ White Rabbit uses a hybrid deployment approach combining Vercel's serverless pla
 - Deployed via `vercel deploy` in the `api/` directory
 - Configuration in `api/vercel.json`
 - Serverless functions with 60-second timeout limit
+- TTS dependencies (kokoro, soundfile, numpy) are NOT installed on production to reduce deployment size and cold start time
+- `TTS_ENABLED=false` on production means the backend serves pre-generated audio instead of generating it on-demand
 
 **Audio Files (GitHub Pages CDN):**
 - Pre-generated audio files stored in `public/audio/`
@@ -604,6 +665,10 @@ vercel deploy
 ## Development Patterns
 
 ### Client/Server API Separation
+
+> **See Also:** For implementation debugging history, security vulnerability fixes, and detailed architecture diagrams, see:
+> - [`.claude/agents/frontend-dev/SKILL.md`](.claude/agents/frontend-dev/SKILL.md) - "Client/Server API Separation - Critical Security Fix" section
+> - [`.claude/agents/backend-dev/SKILL.md`](.claude/agents/backend-dev/SKILL.md) - "API Key Security Refactoring" and "Comprehensive Client/Server API Separation" sections
 
 The project uses a three-tier API utility structure to enforce secure separation between client-side and server-side code:
 
@@ -1103,3 +1168,35 @@ Critical startup tasks include:
 2. Cache directory security checks
 3. Index verification
 4. TTS model initialization (or lazy-loading setup)
+
+---
+
+## Related Documentation
+
+This section provides cross-references to agent-specific SKILL.md files that contain detailed implementation patterns, debugging history, and learnings from development sessions.
+
+### Agent SKILL.md Files
+
+| Agent | File | Key Topics |
+|-------|------|------------|
+| **Frontend Dev** | [`.claude/agents/frontend-dev/SKILL.md`](.claude/agents/frontend-dev/SKILL.md) | Next.js patterns, React hooks, TypeScript guidelines, i18n integration, Client/Server separation, Zustand state management |
+| **Backend Dev** | [`.claude/agents/backend-dev/SKILL.md`](.claude/agents/backend-dev/SKILL.md) | FastAPI patterns, Neo4j operations, security guidelines, deployment optimization, API key authentication, rate limiting |
+
+### Quick Reference: Where to Find Details
+
+| Topic | CLAUDE.md Section | Detailed In |
+|-------|-------------------|-------------|
+| Client/Server API Separation | [Development Patterns](#clientserver-api-separation) | frontend-dev/SKILL.md, backend-dev/SKILL.md |
+| TTS Deployment Strategy | [Deployment Architecture](#deployment-architecture) | backend-dev/SKILL.md |
+| i18n / useTranslations | [UI Components & Styling](#internationalization-with-next-intl) | frontend-dev/SKILL.md |
+| API Key Security | [Security Features](#api-key-authentication) | backend-dev/SKILL.md |
+| Rate Limiting | [Security Features](#rate-limiting) | backend-dev/SKILL.md |
+| React Status Polling | - | frontend-dev/SKILL.md |
+| Neo4j Query Patterns | [Development Patterns](#neo4j-cypher-query-security) | backend-dev/SKILL.md |
+
+### Document Hierarchy
+
+- **CLAUDE.md** (this file): Project-wide patterns, tech stack overview, quick reference for common tasks
+- **Agent SKILL.md files**: Detailed implementation rationale, debugging history, session learnings, automation opportunities
+
+When implementing features, consult CLAUDE.md first for quick patterns, then refer to the relevant SKILL.md for implementation details and past debugging insights.
