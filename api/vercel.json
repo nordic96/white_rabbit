@@ -12,7 +12,7 @@
     }
   ],
   "functions": {
-    "/api/main.py": {
+    "/api/src/main.py": {
       "runtime": "python3.11"
     }
   }
